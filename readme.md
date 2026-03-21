@@ -79,7 +79,7 @@
 
 ### 环境要求
 
-* Python 3.9+  
+* Python 3.10+  
 * 一个现代网络浏览器 (如 Chrome, Firefox, Edge)  
 * 大语言模型的 API 密钥。我们仅推荐您使用 Google Gemini 2.5。  
 
