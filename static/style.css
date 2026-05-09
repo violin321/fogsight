@@ -156,8 +156,8 @@ button:disabled {
     background: #fff;
     padding: 2rem 2.5rem;
     border-radius: var(--radius-md);
-    max-width: 420px;
-    width: 90%;
+    max-width: 520px;
+    width: min(90%, 520px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     text-align: center;
     position: relative;
@@ -169,9 +169,11 @@ button:disabled {
 }
 .modal-content p {
     margin: 0 0 1.5rem 0;
-    line-height: 1.6;
+    line-height: 1.7;
     color: var(--text-primary);
     font-size: 1rem;
+    text-align: left;
+    white-space: pre-line;
 }
 .modal-button {
     width: 100%;

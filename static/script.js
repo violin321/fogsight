@@ -27,8 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
         openInNewWindow: { zh: "在新窗口中打开", en: "Open in new window" },
         saveAsHTML: { zh: "保存为 HTML", en: "Save as HTML" },
         exportAsVideo: { zh: "导出为视频", en: "Export as Video" },
-        featureComingSoon: { zh: "该功能正在开发中，将在不久的将来推出。\n 请关注我们的官方 GitHub 仓库以获取最新动态！", en: "This feature is under development and will be available soon.\n Follow our official GitHub repository for the latest updates!" },
-        visitGitHub: { zh: "访问 GitHub", en: "Visit GitHub" },
+        exportVideoInstructions: {
+            zh: "仅支持桌面浏览器。点击开始录制后，会打开一个黑色播放窗口。请在系统共享选择器中选择刚打开的 Fogsight recording window/tab；停止共享后会自动下载 WebM。",
+            en: "Desktop browsers only. After you start recording, a black playback window will open. In the screen-share picker, choose the newly opened Fogsight recording window/tab. When you stop sharing, a WebM file will download automatically."
+        },
+        exportVideoStart: { zh: "开始录制", en: "Start recording" },
+        exportVideoUnsupported: { zh: "当前浏览器不支持屏幕录制或 MediaRecorder，请改用最新版桌面 Chrome / Edge。", en: "This browser does not support screen capture or MediaRecorder. Please use a recent desktop Chrome or Edge." },
+        exportVideoNoContent: { zh: "当前没有可导出的视频内容。", en: "There is no playable content to export right now." },
+        exportVideoWindowBlocked: { zh: "播放窗口被浏览器拦截了，请允许弹窗后重试。", en: "The playback window was blocked. Please allow pop-ups and try again." },
+        exportVideoPermissionCancelled: { zh: "你已取消录屏选择，未生成视频文件。", en: "Screen capture was cancelled. No video file was created." },
+        exportVideoFailed: { zh: "录屏导出失败，请重试。", en: "Video export failed. Please try again." },
+        exportVideoRecording: { zh: "请在共享选择器中选择新打开的 Fogsight 播放窗口；停止共享后会自动下载 WebM。", en: "Select the newly opened Fogsight playback window in the share picker. The WebM download will start after you stop sharing." },
+        close: { zh: "关闭", en: "Close" },
         errorMessage: { zh: "抱歉，服务出现了一点问题。请稍后重试。", en: "Sorry, something went wrong. Please try again later." },
         errorFetchFailed: {zh: "LLM服务不可用，请稍后再试", en: "LLM service is unavailable. Please try again later."},
         errorTooManyRequests: {zh: "今天已经使用太多，请明天再试", en: "Too many requests today. Please try again tomorrow."},
@@ -46,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const languageSwitcher = document.getElementById('language-switcher');
     const placeholderContainer = document.getElementById('animated-placeholder');
     const featureModal = document.getElementById('feature-modal');
-    const modalGitHubButton = document.getElementById('modal-github-button');
+    const modalActionButton = document.getElementById('modal-github-button');
     const modalCloseButton = document.getElementById('modal-close-button');
 
     const templates = {
@@ -68,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let conversationHistory = [];
     let accumulatedCode = '';
     let placeholderInterval;
+    let modalPrimaryAction = null;
 
     function handleFormSubmit(e) {
         e.preventDefault();
@@ -259,6 +270,82 @@ document.addEventListener('DOMContentLoaded', () => {
         codeBlockElement.querySelector('.code-details').removeAttribute('open');
     }
 
+    function escapeHtmlForAttribute(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function createHtmlBlobUrl(htmlContent) {
+        return URL.createObjectURL(new Blob([htmlContent], { type: 'text/html' }));
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function timestampForFilename() {
+        const now = new Date();
+        const pad = (value) => String(value).padStart(2, '0');
+        return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    }
+
+    function renderPlaybackWindow(playbackWindow, htmlContent, topic) {
+        const safeTitle = topic?.trim() || 'Fogsight Export';
+        const wrappedHtml = `<!DOCTYPE html>
+<html lang="${currentLang === 'zh' ? 'zh-CN' : 'en'}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fogsight Recording - ${safeTitle}</title>
+<style>
+html, body { margin: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+body { display: flex; align-items: center; justify-content: center; font-family: Inter, system-ui, sans-serif; color: #fff; }
+.iframe-shell { width: 100vw; height: 100vh; border: 0; background: #000; }
+.noscript { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+</style>
+</head>
+<body>
+<iframe class="iframe-shell" sandbox="allow-scripts allow-same-origin" allow="autoplay" srcdoc="${escapeHtmlForAttribute(htmlContent)}"></iframe>
+<noscript><div class="noscript">JavaScript is required to preview this export.</div></noscript>
+</body>
+</html>`;
+
+        playbackWindow.document.open();
+        playbackWindow.document.write(wrappedHtml);
+        playbackWindow.document.close();
+        return playbackWindow;
+    }
+
+    function openPlaybackWindow(htmlContent, topic) {
+        const playbackWindow = window.open('', '_blank');
+        if (!playbackWindow) return null;
+        return renderPlaybackWindow(playbackWindow, htmlContent, topic);
+    }
+
+    function restartPlaybackWindow(playbackWindow, htmlContent, topic) {
+        if (!playbackWindow || playbackWindow.closed) return openPlaybackWindow(htmlContent, topic);
+        return renderPlaybackWindow(playbackWindow, htmlContent, topic);
+    }
+
+    function getSupportedRecordingMimeType() {
+        const mimeTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        return mimeTypes.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) || '';
+    }
+
+    function showModalMessage(message, buttonText, onAction) {
+        featureModal.querySelector('p').textContent = message;
+        modalActionButton.textContent = buttonText;
+        modalActionButton.dataset.translateKey = '';
+        modalPrimaryAction = typeof onAction === 'function' ? onAction : null;
+        featureModal.classList.add('visible');
+    }
+
     function appendAnimationPlayer(htmlContent, topic) {
         console.log('Appending animation player with topic:', topic);
         const node = templates.player.content.cloneNode(true);
@@ -271,22 +358,85 @@ document.addEventListener('DOMContentLoaded', () => {
         iframe.srcdoc = htmlContent;
 
         playerElement.querySelector('.open-new-window').addEventListener('click', () => {
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            window.open(URL.createObjectURL(blob), '_blank');
+            const url = createHtmlBlobUrl(htmlContent);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
         playerElement.querySelector('.save-html').addEventListener('click', () => {
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = Object.assign(document.createElement('a'), { href: url, download: `${topic.replace(/\s/g, '_') || 'animation'}.html` });
-            document.body.appendChild(a);
-            a.click();
-            URL.revokeObjectURL(url);
-            a.remove();
+            downloadBlob(new Blob([htmlContent], { type: 'text/html' }), `${topic.replace(/\s/g, '_') || 'animation'}.html`);
         });
         playerElement.querySelector('.export-video')?.addEventListener('click', () => {
-            featureModal.querySelector('p').textContent = translations.featureComingSoon[currentLang];
-            modalGitHubButton.textContent = translations.visitGitHub[currentLang];
-            featureModal.classList.add('visible');
+            if (!htmlContent || !isHtmlContentValid(htmlContent)) {
+                showWarning(translations.exportVideoNoContent[currentLang]);
+                return;
+            }
+
+            showModalMessage(
+                translations.exportVideoInstructions[currentLang],
+                translations.exportVideoStart[currentLang],
+                async () => {
+                    featureModal.classList.remove('visible');
+
+                    if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
+                        showWarning(translations.exportVideoUnsupported[currentLang]);
+                        return;
+                    }
+
+                    const mimeType = getSupportedRecordingMimeType();
+                    const playbackWindow = openPlaybackWindow(htmlContent, topic);
+                    if (!playbackWindow) {
+                        showWarning(translations.exportVideoWindowBlocked[currentLang]);
+                        return;
+                    }
+
+                    try {
+                        showWarning(translations.exportVideoRecording[currentLang]);
+                        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+                        const chunks = [];
+                        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+                        let stopped = false;
+
+                        const stopAndDownload = () => {
+                            if (stopped) return;
+                            stopped = true;
+                            if (recorder.state !== 'inactive') recorder.stop();
+                        };
+
+                        recorder.ondataavailable = (event) => {
+                            if (event.data && event.data.size > 0) chunks.push(event.data);
+                        };
+
+                        recorder.onerror = () => {
+                            showWarning(translations.exportVideoFailed[currentLang]);
+                        };
+
+                        recorder.onstop = () => {
+                            stream.getTracks().forEach(track => track.stop());
+                            if (chunks.length === 0) {
+                                showWarning(translations.exportVideoFailed[currentLang]);
+                                return;
+                            }
+                            const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+                            downloadBlob(blob, `fogsight-export-${timestampForFilename()}.webm`);
+                        };
+
+                        stream.getVideoTracks().forEach(track => {
+                            track.addEventListener('ended', stopAndDownload, { once: true });
+                        });
+
+                        restartPlaybackWindow(playbackWindow, htmlContent, topic);
+                        recorder.start(1000);
+                    } catch (error) {
+                        if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
+                            showWarning(translations.exportVideoPermissionCancelled[currentLang]);
+                        } else {
+                            console.error('Video export failed:', error);
+                            showWarning(translations.exportVideoFailed[currentLang]);
+                        }
+                        if (playbackWindow && !playbackWindow.closed) playbackWindow.close();
+                    }
+                }
+            );
         });
         chatLog.appendChild(playerElement);
         scrollToBottom();
@@ -373,6 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function hideModal() {
             featureModal.classList.remove('visible');
+            modalPrimaryAction = null;
         }
 
         modalCloseButton.addEventListener('click', hideModal);
@@ -380,9 +531,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target === featureModal) hideModal();
         });
 
-        modalGitHubButton.addEventListener('click', () => {
-            window.open('https://github.com/fogsightai/fogsightai', '_blank');
-            hideModal();
+        modalActionButton.addEventListener('click', () => {
+            const action = modalPrimaryAction;
+            if (!action) {
+                hideModal();
+                return;
+            }
+            Promise.resolve(action()).catch((error) => {
+                console.error('Modal action failed:', error);
+                showWarning(translations.exportVideoFailed[currentLang]);
+            }).finally(() => {
+                modalPrimaryAction = null;
+            });
         });
 
         const savedLang = localStorage.getItem('preferredLanguage');
