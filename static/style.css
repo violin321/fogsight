@@ -113,12 +113,17 @@ button:disabled {
 .code-content code span { display: inline; animation: tokenFadeIn 0.3s forwards; opacity: 0; }
 @keyframes tokenFadeIn { to { opacity: 1; } }
 .player-container { background: var(--bubble-agent-bg); border-radius: var(--radius-lg); padding: 8px; }
-.iframe-wrapper { aspect-ratio: 16 / 9; width: 100%; max-width: calc(80vh * 16 / 9); max-height: 80vh; margin: 0 auto; border-radius: 12px; overflow: hidden; display: block; }
+.iframe-wrapper { aspect-ratio: 16 / 9; width: 100%; max-width: min(100%, calc(80vh * 16 / 9)); max-height: 80vh; margin: 0 auto; border-radius: 12px; overflow: hidden; display: block; }
 .animation-iframe { width: 100%; height: 100%; border: none; }
-.player-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 10px 4px 4px; }
-.action-button { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: rgba(0,0,0,0.05); transition: background-color 0.2s; }
+.player-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 10px 4px 4px; }
+.action-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 44px; padding: 10px 12px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; background: rgba(0,0,0,0.05); transition: background-color 0.2s; }
+.action-button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .action-button:hover { background: rgba(0,0,0,0.1); }
+.action-button.regenerate { background: rgba(88, 86, 214, 0.14); color: #5856D6; }
+.action-button.improve-version { background: rgba(52, 199, 89, 0.16); color: #1F8A46; }
 .action-button.open-new-window { background: rgba(10, 132, 255, 0.15); color: #0A84FF; }
+.action-button.save-html { background: rgba(255, 149, 0, 0.16); color: #A55D00; }
+.action-button.export-video { background: rgba(255, 45, 85, 0.14); color: #D6244F; }
 
 /* === 动画占位符 === */
 .animated-placeholder { position: absolute; top: 0; left: 25px; height: 60px; width: calc(100% - 85px); display: flex; align-items: center; overflow: hidden; pointer-events: none; }
@@ -254,4 +259,86 @@ button:disabled {
 @keyframes fadeIn {
     from { opacity: 0; transform: translate(-50%, -40%); }
     to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+@media (max-width: 1100px) {
+    .player-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .initial-view {
+        padding: 1.25rem;
+    }
+
+    #logo-initial {
+        top: 1.25rem;
+        left: 1.25rem;
+    }
+
+    .language-switcher {
+        top: 1.25rem;
+        right: 1.25rem;
+    }
+
+    .hero-group h1 {
+        font-size: clamp(1.6rem, 7vw, 2.2rem);
+    }
+
+    .initial-form input,
+    .animated-placeholder,
+    .animated-placeholder span {
+        font-size: 1rem;
+    }
+
+    .initial-footer {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.92rem;
+    }
+
+    .chat-header {
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+    }
+
+    .chat-log {
+        padding: 1rem;
+    }
+
+    .chat-footer {
+        padding: 0.75rem;
+    }
+
+    .message-group {
+        max-width: 100%;
+    }
+
+    .iframe-wrapper {
+        max-width: 100%;
+        max-height: none;
+    }
+
+    .player-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .action-button {
+        justify-content: flex-start;
+        font-size: 0.95rem;
+    }
+
+    .action-button span {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: initial;
+    }
+
+    .warning-box {
+        width: min(92vw, 420px);
+        padding: 18px 20px;
+        align-items: flex-start;
+    }
 }

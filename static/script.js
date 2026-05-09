@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const config = {
-        apiBaseUrl: '', 
+        apiBaseUrl: '',
         defaultLang: 'zh',
     };
 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         officialWebsite: { zh: "通向 AGI 之路社区", en: "WaytoAGI Open Source Community" },
         groupChat: { zh: "联系我们/加入交流群", en: "Contact Us" },
         placeholders: {
-            zh: ["微积分的几何原理", "冒泡排序","热寂", "黑洞是如何形成的"],
+            zh: ["微积分的几何原理", "冒泡排序", "热寂", "黑洞是如何形成的"],
             en: ["What is Heat Death?", "How are black holes formed?", "What is Bubble Sort?"]
         },
         newChat: { zh: "新对话", en: "New Chat" },
@@ -22,17 +22,25 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         sendTitle: { zh: "发送", en: "Send" },
         agentThinking: { zh: "Fogsight Agent 正在进行思考与规划，请稍后。这可能需要数十秒至数分钟...", en: "Fogsight Agent is thinking and planning, please wait..." },
+        regenerating: { zh: "正在基于原始主题重新生成新版本...", en: "Regenerating a fresh version from the original topic..." },
+        improving: { zh: "正在基于当前版本进行优化...", en: "Improving the current version..." },
         generatingCode: { zh: "生成代码中...", en: "Generating code..." },
         codeComplete: { zh: "代码已完成", en: "Code generated" },
         openInNewWindow: { zh: "在新窗口中打开", en: "Open in new window" },
         saveAsHTML: { zh: "保存为 HTML", en: "Save as HTML" },
         exportAsVideo: { zh: "导出为视频", en: "Export as Video" },
+        regenerate: { zh: "重新生成", en: "Regenerate" },
+        improveVersion: { zh: "基于此版本优化", en: "Improve this version" },
         exportVideoInstructions: {
             zh: "仅支持桌面浏览器。点击开始录制后，会打开一个黑色播放窗口。请在系统共享选择器中选择刚打开的 Fogsight recording window/tab；停止共享后会自动下载 WebM。",
             en: "Desktop browsers only. After you start recording, a black playback window will open. In the screen-share picker, choose the newly opened Fogsight recording window/tab. When you stop sharing, a WebM file will download automatically."
         },
         exportVideoStart: { zh: "开始录制", en: "Start recording" },
         exportVideoUnsupported: { zh: "当前浏览器不支持屏幕录制或 MediaRecorder，请改用最新版桌面 Chrome / Edge。", en: "This browser does not support screen capture or MediaRecorder. Please use a recent desktop Chrome or Edge." },
+        exportVideoMobileUnsupported: {
+            zh: "移动端暂不支持视频导出，请使用桌面版 Chrome / Edge；你仍可保存 HTML。\n\nMobile video export is not supported yet. Please use desktop Chrome or Edge; you can still save the HTML.",
+            en: "移动端暂不支持视频导出，请使用桌面版 Chrome / Edge；你仍可保存 HTML。\n\nMobile video export is not supported yet. Please use desktop Chrome or Edge; you can still save the HTML."
+        },
         exportVideoNoContent: { zh: "当前没有可导出的视频内容。", en: "There is no playable content to export right now." },
         exportVideoWindowBlocked: { zh: "播放窗口被浏览器拦截了，请允许弹窗后重试。", en: "The playback window was blocked. Please allow pop-ups and try again." },
         exportVideoPermissionCancelled: { zh: "你已取消录屏选择，未生成视频文件。", en: "Screen capture was cancelled. No video file was created." },
@@ -40,9 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
         exportVideoRecording: { zh: "请在共享选择器中选择新打开的 Fogsight 播放窗口；停止共享后会自动下载 WebM。", en: "Select the newly opened Fogsight playback window in the share picker. The WebM download will start after you stop sharing." },
         close: { zh: "关闭", en: "Close" },
         errorMessage: { zh: "抱歉，服务出现了一点问题。请稍后重试。", en: "Sorry, something went wrong. Please try again later." },
-        errorFetchFailed: {zh: "LLM服务不可用，请稍后再试", en: "LLM service is unavailable. Please try again later."},
-        errorTooManyRequests: {zh: "今天已经使用太多，请明天再试", en: "Too many requests today. Please try again tomorrow."},
-        errorLLMParseError: {zh: "返回的动画代码解析失败，请调整提示词重新生成。", en: "Failed to parse the returned animation code. Please adjust your prompt and try again."},
+        errorFetchFailed: { zh: "LLM服务不可用，请稍后再试", en: "LLM service is unavailable. Please try again later." },
+        errorTooManyRequests: { zh: "今天已经使用太多，请明天再试", en: "Too many requests today. Please try again tomorrow." },
+        errorLLMParseError: { zh: "返回的动画代码解析失败，请调整提示词重新生成。", en: "Failed to parse the returned animation code. Please adjust your prompt and try again." },
+    };
+
+    const IMPROVEMENT_INSTRUCTION = {
+        zh: "请基于当前 HTML 版本进行优化：保留核心内容与叙事结构，提升视觉层次、动画流畅度、移动端适配、触控友好性，以及中英双语解说的清晰度。输出仍必须是完整单文件 HTML（含 CSS/JS/SVG），不要附加解释。",
+        en: "Please improve the current HTML version while preserving the core content and narrative. Enhance visual hierarchy, animation smoothness, mobile responsiveness, touch friendliness, and the clarity of bilingual explanations. Return a complete single-file HTML document with CSS/JS/SVG only, with no extra explanation."
     };
 
     let currentLang = config.defaultLang;
@@ -79,6 +92,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let accumulatedCode = '';
     let placeholderInterval;
     let modalPrimaryAction = null;
+    let placeholderIndex = 0;
+
+    function getRootTopic() {
+        const firstUserMessage = conversationHistory.find((message) => message.role === 'user');
+        return firstUserMessage?.content?.trim() || '';
+    }
+
+    function createGenerationContext(topic, overrides = {}) {
+        return {
+            topic,
+            sourceTopic: overrides.sourceTopic || getRootTopic() || topic,
+            requestHistory: Array.isArray(overrides.requestHistory) ? overrides.requestHistory : conversationHistory,
+            displayUserMessage: overrides.displayUserMessage ?? true,
+            addUserMessageToConversation: overrides.addUserMessageToConversation ?? true,
+            recordAssistantInConversation: overrides.recordAssistantInConversation ?? true,
+            statusMessage: overrides.statusMessage || translations.agentThinking[currentLang],
+        };
+    }
 
     function handleFormSubmit(e) {
         e.preventDefault();
@@ -96,16 +127,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isInitial) switchToChatView();
 
-        conversationHistory.push({ role: 'user', content: topic });
-        startGeneration(topic);
+        const generationContext = createGenerationContext(topic);
+        if (generationContext.addUserMessageToConversation) {
+            conversationHistory.push({ role: 'user', content: topic });
+        }
+        startGeneration(generationContext);
         input.value = '';
         if (isInitial) placeholderContainer?.classList?.remove('hidden');
     }
 
-    async function startGeneration(topic) {
+    async function startGeneration(generationContextOrTopic, overrides = {}) {
+        const generationContext = typeof generationContextOrTopic === 'string'
+            ? createGenerationContext(generationContextOrTopic, overrides)
+            : generationContextOrTopic;
+
+        const {
+            topic,
+            sourceTopic,
+            requestHistory,
+            displayUserMessage,
+            recordAssistantInConversation,
+            statusMessage,
+        } = generationContext;
+
         console.log('Getting generation from backend.');
-        appendUserMessage(topic);
-        const agentThinkingMessage = appendAgentStatus(translations.agentThinking[currentLang]);
+        if (displayUserMessage) appendUserMessage(topic);
+        const agentThinkingMessage = appendAgentStatus(statusMessage || translations.agentThinking[currentLang]);
         const submitButton = document.querySelector('.submit-button');
         if (submitButton) {
             submitButton.disabled = true;
@@ -119,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${config.apiBaseUrl}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic: topic, history: conversationHistory })
+                body: JSON.stringify({ topic, history: requestHistory })
             });
 
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -142,7 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const jsonStr = line.substring(6);
                     if (jsonStr.includes('[DONE]')) {
                         console.log('Streaming complete');
-                        conversationHistory.push({ role: 'assistant', content: accumulatedCode });
+                        if (recordAssistantInConversation) {
+                            conversationHistory.push({ role: 'assistant', content: accumulatedCode });
+                        }
 
                         if (!codeBlockElement) {
                             console.warn('No code block element created. Full response:', accumulatedCode);
@@ -158,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         try {
                             if (accumulatedCode) {
-                                appendAnimationPlayer(accumulatedCode, topic);
+                                appendAnimationPlayer(accumulatedCode, topic, { sourceTopic });
                             }
                         } catch (err) {
                             console.error('appendAnimationPlayer failed:', err);
@@ -199,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (error) {
-            console.error("Streaming failed:", error);
+            console.error('Streaming failed:', error);
             if (agentThinkingMessage) agentThinkingMessage.remove();
 
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -209,16 +258,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (error instanceof LLMParseError) {
                 showWarning(translations.errorLLMParseError[currentLang]);
             } else {
-                showWarning(translations.errorFetchFailed[currentLang]); // 默认 fallback
+                showWarning(translations.errorFetchFailed[currentLang]);
             }
 
-            appendErrorMessage(translations.errorMessage[currentLang]);  // 保留 chat-log 中的提示
+            appendErrorMessage(translations.errorMessage[currentLang]);
         } finally {
-        if (submitButton) {
-            submitButton.disabled = false;
-            submitButton.classList.remove('disabled');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('disabled');
+            }
         }
-    }
     }
 
     function switchToChatView() {
@@ -338,6 +387,14 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         return mimeTypes.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) || '';
     }
 
+    function isLikelyMobileOrSmallScreen() {
+        const userAgent = navigator.userAgent || '';
+        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+        const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches;
+        const smallViewport = window.matchMedia?.('(max-width: 900px)').matches;
+        return mobileRegex.test(userAgent) || Boolean(coarsePointer) || Boolean(smallViewport);
+    }
+
     function showModalMessage(message, buttonText, onAction) {
         featureModal.querySelector('p').textContent = message;
         modalActionButton.textContent = buttonText;
@@ -346,8 +403,16 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         featureModal.classList.add('visible');
     }
 
-    function appendAnimationPlayer(htmlContent, topic) {
+    function buildImproveHistory(sourceTopic, htmlContent) {
+        const history = [];
+        if (sourceTopic) history.push({ role: 'user', content: sourceTopic });
+        history.push({ role: 'assistant', content: htmlContent });
+        return history;
+    }
+
+    function appendAnimationPlayer(htmlContent, topic, options = {}) {
         console.log('Appending animation player with topic:', topic);
+        const sourceTopic = options.sourceTopic || getRootTopic() || topic;
         const node = templates.player.content.cloneNode(true);
         const playerElement = node.firstElementChild;
         playerElement.querySelectorAll('[data-translate-key]').forEach(el => {
@@ -362,12 +427,48 @@ body { display: flex; align-items: center; justify-content: center; font-family:
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
+
         playerElement.querySelector('.save-html').addEventListener('click', () => {
             downloadBlob(new Blob([htmlContent], { type: 'text/html' }), `${topic.replace(/\s/g, '_') || 'animation'}.html`);
         });
+
+        playerElement.querySelector('.regenerate')?.addEventListener('click', () => {
+            startGeneration({
+                topic: sourceTopic,
+                sourceTopic,
+                requestHistory: [],
+                displayUserMessage: false,
+                addUserMessageToConversation: false,
+                recordAssistantInConversation: false,
+                statusMessage: translations.regenerating[currentLang],
+            });
+        });
+
+        playerElement.querySelector('.improve-version')?.addEventListener('click', () => {
+            const improveInstruction = IMPROVEMENT_INSTRUCTION[currentLang];
+            startGeneration({
+                topic: improveInstruction,
+                sourceTopic,
+                requestHistory: buildImproveHistory(sourceTopic, htmlContent),
+                displayUserMessage: false,
+                addUserMessageToConversation: false,
+                recordAssistantInConversation: false,
+                statusMessage: translations.improving[currentLang],
+            });
+        });
+
         playerElement.querySelector('.export-video')?.addEventListener('click', () => {
             if (!htmlContent || !isHtmlContentValid(htmlContent)) {
                 showWarning(translations.exportVideoNoContent[currentLang]);
+                return;
+            }
+
+            if (isLikelyMobileOrSmallScreen() || !navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
+                showModalMessage(
+                    translations.exportVideoMobileUnsupported[currentLang],
+                    translations.close[currentLang],
+                    () => featureModal.classList.remove('visible')
+                );
                 return;
             }
 
@@ -376,11 +477,6 @@ body { display: flex; align-items: center; justify-content: center; font-family:
                 translations.exportVideoStart[currentLang],
                 async () => {
                     featureModal.classList.remove('visible');
-
-                    if (!navigator.mediaDevices?.getDisplayMedia || typeof MediaRecorder === 'undefined') {
-                        showWarning(translations.exportVideoUnsupported[currentLang]);
-                        return;
-                    }
 
                     const mimeType = getSupportedRecordingMimeType();
                     const playbackWindow = openPlaybackWindow(htmlContent, topic);
@@ -438,24 +534,22 @@ body { display: flex; align-items: center; justify-content: center; font-family:
                 }
             );
         });
+
         chatLog.appendChild(playerElement);
         scrollToBottom();
     }
 
     function isHtmlContentValid(htmlContent) {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, "text/html");
-
-        // 检查是否存在解析错误
-        const parseErrors = doc.querySelectorAll("parsererror");
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const parseErrors = doc.querySelectorAll('parsererror');
         if (parseErrors.length > 0) {
-            console.warn("HTML 解析失败：", parseErrors[0].textContent);
+            console.warn('HTML 解析失败：', parseErrors[0].textContent);
             return false;
         }
 
-        // 可选：检测是否有 <html><body> 结构或是否为空
-        if (!doc.body || doc.body.innerHTML.trim() === "") {
-            console.warn("HTML 内容为空");
+        if (!doc.body || doc.body.innerHTML.trim() === '') {
+            console.warn('HTML 内容为空');
             return false;
         }
 
@@ -502,8 +596,6 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         localStorage.setItem('preferredLanguage', lang);
     }
 
-    let placeholderIndex = 0;
-
     function init() {
         initialInput.addEventListener('input', () => {
             placeholderContainer.classList.toggle('hidden', initialInput.value.length > 0);
@@ -546,9 +638,9 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         });
 
         const savedLang = localStorage.getItem('preferredLanguage');
-        const browserLang = navigator.language?.toLowerCase() || ''; // e.g. 'zh-cn'
+        const browserLang = navigator.language?.toLowerCase() || '';
 
-        let initialLang = 'en'; 
+        let initialLang = 'en';
         if (['zh', 'en'].includes(savedLang)) {
             initialLang = savedLang;
         } else if (browserLang.startsWith('zh')) {
