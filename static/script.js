@@ -340,8 +340,27 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/"/g, '&quot;');
     }
 
-    function createHtmlBlobUrl(htmlContent) {
-        return URL.createObjectURL(new Blob([htmlContent], { type: 'text/html' }));
+    function injectScrollablePreviewStyles(htmlContent) {
+        const scrollFix = `<style id="fogsight-open-window-scroll-fix">
+html, body {
+    min-width: 100%;
+    min-height: 100%;
+    overflow: auto !important;
+    overscroll-behavior: contain;
+}
+body {
+    -webkit-overflow-scrolling: touch;
+}
+</style>`;
+        if (/<\/head>/i.test(htmlContent)) {
+            return htmlContent.replace(/<\/head>/i, `${scrollFix}</head>`);
+        }
+        return `${scrollFix}${htmlContent}`;
+    }
+
+    function createHtmlBlobUrl(htmlContent, options = {}) {
+        const content = options.scrollablePreview ? injectScrollablePreviewStyles(htmlContent) : htmlContent;
+        return URL.createObjectURL(new Blob([content], { type: 'text/html' }));
     }
 
     function downloadBlob(blob, filename) {
@@ -438,7 +457,7 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         iframe.srcdoc = htmlContent;
 
         playerElement.querySelector('.open-new-window').addEventListener('click', () => {
-            const url = createHtmlBlobUrl(htmlContent);
+            const url = createHtmlBlobUrl(htmlContent, { scrollablePreview: true });
             window.open(url, '_blank');
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
