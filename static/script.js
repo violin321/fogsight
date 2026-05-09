@@ -358,6 +358,21 @@ body {
         return `${scrollFix}${htmlContent}`;
     }
 
+    function renderHtmlIntoWindow(targetWindow, htmlContent, options = {}) {
+        if (!targetWindow) return null;
+        const content = options.scrollablePreview ? injectScrollablePreviewStyles(htmlContent) : htmlContent;
+        targetWindow.document.open();
+        targetWindow.document.write(content);
+        targetWindow.document.close();
+        return targetWindow;
+    }
+
+    function openHtmlPreviewWindow(htmlContent) {
+        const previewWindow = window.open('about:blank', '_blank');
+        if (!previewWindow) return null;
+        return renderHtmlIntoWindow(previewWindow, htmlContent, { scrollablePreview: true });
+    }
+
     function createHtmlBlobUrl(htmlContent, options = {}) {
         const content = options.scrollablePreview ? injectScrollablePreviewStyles(htmlContent) : htmlContent;
         return URL.createObjectURL(new Blob([content], { type: 'text/html' }));
@@ -457,9 +472,8 @@ body { display: flex; align-items: center; justify-content: center; font-family:
         iframe.srcdoc = htmlContent;
 
         playerElement.querySelector('.open-new-window').addEventListener('click', () => {
-            const url = createHtmlBlobUrl(htmlContent, { scrollablePreview: true });
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            const previewWindow = openHtmlPreviewWindow(htmlContent);
+            if (!previewWindow) showWarning(translations.exportVideoWindowBlocked[currentLang]);
         });
 
         playerElement.querySelector('.save-html').addEventListener('click', () => {
