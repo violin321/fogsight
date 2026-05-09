@@ -198,6 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new LLMParseError('LLM did not return a complete code block.');
                         }
 
+                        const normalizedCode = stripLeadingCodeFenceLanguageMarker(accumulatedCode);
+                        if (normalizedCode !== accumulatedCode) {
+                            accumulatedCode = normalizedCode;
+                            const codeElement = codeBlockElement.querySelector('code');
+                            if (codeElement) codeElement.textContent = accumulatedCode;
+                        }
+
                         if (!isHtmlContentValid(accumulatedCode)) {
                             console.warn('Invalid HTML received:\n', accumulatedCode);
                             throw new LLMParseError('Invalid HTML content received.');
@@ -317,6 +324,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function markCodeAsComplete(codeBlockElement) {
         codeBlockElement.querySelector('[data-translate-key="generatingCode"]').textContent = translations.codeComplete[currentLang];
         codeBlockElement.querySelector('.code-details').removeAttribute('open');
+    }
+
+    function stripLeadingCodeFenceLanguageMarker(htmlContent) {
+        if (!htmlContent) return htmlContent;
+        // Streaming responses may split ```html into separate tokens, leaving a
+        // literal "html" at the start of the generated document. Remove only
+        // the common fenced-code language marker when it is followed by HTML.
+        return htmlContent.replace(/^\s*html\s*(?=<!doctype|<html|<head|<body|<)/i, '');
     }
 
     function escapeHtmlForAttribute(value) {
