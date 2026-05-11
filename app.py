@@ -1,28 +1,34 @@
 import asyncio
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncGenerator, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 from uuid import uuid4
 
 import pytz
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openai import AsyncOpenAI, OpenAIError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from starlette.background import BackgroundTask
 
 try:
-    import google.generativeai as genai
+    import google.generativeai as legacy_genai
 except ModuleNotFoundError:
-    from google import genai
+    legacy_genai = None
+
+try:
+    from google import genai as google_genai
+except ModuleNotFoundError:
+    google_genai = None
 
 try:
     from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -35,35 +41,275 @@ except ModuleNotFoundError:
 # 0. 配置
 # -----------------------------------------------------------------------
 shanghai_tz = pytz.timezone("Asia/Shanghai")
+APP_DIR = Path(__file__).resolve().parent
+DATA_DIR = APP_DIR / "data"
+CREDENTIALS_PATH = APP_DIR / "credentials.json"
+CREDENTIALS_OVERLAY_PATH = DATA_DIR / "credentials.local.json"
+CREDENTIALS_FILE_MODE = 0o600
 
-credentials = json.load(open("credentials.json"))
-API_KEY = credentials["API_KEY"]
-BASE_URL = credentials.get("BASE_URL", "")
-MODEL = credentials.get("MODEL", "gemini-2.5-pro")
 
-if API_KEY.startswith("sk-"):
-    extra_headers = {}
-    if "openrouter.ai" in BASE_URL.lower():
-        extra_headers = {
-            "HTTP-Referer": "https://github.com/fogsightai/fogsight",
-            "X-Title": "Fogsight - AI Animation Generator"
+def get_writable_credentials_path() -> Path:
+    """Return the path where runtime credential changes are saved.
+
+    The default credentials.json is often mounted read-only, so we write to a
+    local overlay file that takes precedence when present.
+    """
+    return CREDENTIALS_OVERLAY_PATH
+
+
+def ensure_credentials_file_mode() -> None:
+    try:
+        os.chmod(get_writable_credentials_path(), CREDENTIALS_FILE_MODE)
+    except OSError:
+        pass
+
+
+class RuntimeCredentials(BaseModel):
+    api_key: str = Field(alias="API_KEY")
+    base_url: str = Field(default="", alias="BASE_URL")
+    model: str = Field(default="gemini-2.5-pro", alias="MODEL")
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("api_key", "base_url", "model", mode="before")
+    @classmethod
+    def normalize_string(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    def to_storage_dict(self) -> dict[str, str]:
+        return {
+            "API_KEY": self.api_key,
+            "BASE_URL": self.base_url,
+            "MODEL": self.model,
         }
 
-    client = AsyncOpenAI(
-        api_key=API_KEY,
-        base_url=BASE_URL,
-        default_headers=extra_headers
-    )
-    USE_GEMINI = False
-else:
-    os.environ["GEMINI_API_KEY"] = API_KEY
-    gemini_client = genai.Client()
-    USE_GEMINI = True
 
-if API_KEY.startswith("sk-REPLACE_ME"):
+class ModelSettingsUpdateRequest(BaseModel):
+    baseUrl: str
+    model: str
+    apiKey: Optional[str] = None
+
+    @field_validator("baseUrl", "model", mode="before")
+    @classmethod
+    def normalize_required_string(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @field_validator("apiKey", mode="before")
+    @classmethod
+    def normalize_optional_api_key(cls, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        return str(value).strip()
+
+
+class ModelSettingsTestRequest(BaseModel):
+    baseUrl: str
+    model: str
+    apiKey: Optional[str] = None
+
+    @field_validator("baseUrl", "model", mode="before")
+    @classmethod
+    def normalize_required_string(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @field_validator("apiKey", mode="before")
+    @classmethod
+    def normalize_optional_api_key(cls, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        return str(value).strip()
+
+
+class ChatRequest(BaseModel):
+    topic: str
+    history: Optional[List[dict]] = None
+
+
+class ExportVideoRequest(BaseModel):
+    html: str = Field(..., min_length=1, max_length=250_000)
+    topic: str = Field(default="animation", min_length=1, max_length=120)
+    durationSec: Optional[int] = Field(default=5)
+    width: Optional[int] = Field(default=854)
+    height: Optional[int] = Field(default=480)
+    fps: Optional[int] = Field(default=6)
+
+
+credentials_lock = asyncio.Lock()
+
+
+def load_runtime_credentials() -> RuntimeCredentials:
+    overlay = CREDENTIALS_OVERLAY_PATH
+    primary = overlay if overlay.exists() else CREDENTIALS_PATH
+    if not primary.exists():
+        raise RuntimeError(f"credentials.json 不存在：{CREDENTIALS_PATH}")
+
+    with primary.open("r", encoding="utf-8") as file:
+        raw = json.load(file)
+
+    credentials = RuntimeCredentials.model_validate(raw)
+    if not credentials.api_key:
+        raise RuntimeError("请先配置 API_KEY")
+    return credentials
+
+
+async def save_runtime_credentials(payload: ModelSettingsUpdateRequest) -> RuntimeCredentials:
+    if not payload.model:
+        raise HTTPException(status_code=400, detail="model 不能为空。")
+    if not payload.baseUrl:
+        raise HTTPException(status_code=400, detail="baseUrl 不能为空。")
+
+    async with credentials_lock:
+        current = load_runtime_credentials()
+        next_credentials = RuntimeCredentials(
+            API_KEY=current.api_key if payload.apiKey in (None, "") else payload.apiKey,
+            BASE_URL=payload.baseUrl,
+            MODEL=payload.model,
+        )
+
+        dest = get_writable_credentials_path()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = dest.parent / f"credentials.tmp-{uuid4().hex}"
+        try:
+            with temp_path.open("w", encoding="utf-8") as file:
+                json.dump(next_credentials.to_storage_dict(), file, ensure_ascii=False, indent=2)
+                file.write("\n")
+                file.flush()
+                os.fsync(file.fileno())
+            os.chmod(temp_path, CREDENTIALS_FILE_MODE)
+            os.replace(temp_path, dest)
+            ensure_credentials_file_mode()
+        finally:
+            if temp_path.exists():
+                temp_path.unlink(missing_ok=True)
+
+    return next_credentials
+
+
+def build_openai_client(credentials: RuntimeCredentials) -> AsyncOpenAI:
+    extra_headers = {}
+    if credentials.base_url and "openrouter.ai" in credentials.base_url.lower():
+        extra_headers = {
+            "HTTP-Referer": "https://github.com/fogsightai/fogsight",
+            "X-Title": "Fogsight - AI Animation Generator",
+        }
+
+    client_kwargs: dict[str, Any] = {
+        "api_key": credentials.api_key,
+        "default_headers": extra_headers,
+    }
+    if credentials.base_url:
+        client_kwargs["base_url"] = credentials.base_url
+    return AsyncOpenAI(**client_kwargs)
+
+
+def should_use_openai_compatible(credentials: RuntimeCredentials) -> bool:
+    return credentials.api_key.startswith("sk-")
+
+
+def mask_secret(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "***"
+    return f"{value[:4]}***{value[-4:]}"
+
+
+def redact_sensitive_text(text: str, secrets: Optional[list[str]] = None) -> str:
+    redacted = str(text or "")
+    for secret in secrets or []:
+        secret = (secret or "").strip()
+        if secret:
+            redacted = redacted.replace(secret, mask_secret(secret))
+
+    redacted = re.sub(r"Bearer\s+[A-Za-z0-9_\-\.]+", "Bearer ***", redacted, flags=re.IGNORECASE)
+    redacted = re.sub(r"sk-[A-Za-z0-9_\-]+", "sk-***", redacted)
+    redacted = re.sub(r"(?i)(api[_\s-]*key\s*[:=]\s*)([^\s,;]+)", r"\1***", redacted)
+    return redacted[:500]
+
+
+async def run_model_test(credentials: RuntimeCredentials) -> Dict[str, Any]:
+    model = (credentials.model or "").strip()
+    if not model:
+        raise HTTPException(status_code=400, detail="model 不能为空。")
+    if not credentials.base_url and should_use_openai_compatible(credentials):
+        raise HTTPException(status_code=400, detail="baseUrl 不能为空。")
+    if not credentials.api_key:
+        raise HTTPException(status_code=400, detail="请先配置 API_KEY。")
+
+    prompt_messages = [
+        {"role": "system", "content": "Reply with exactly: OK"},
+        {"role": "user", "content": "Ping"},
+    ]
+
+    try:
+        if should_use_openai_compatible(credentials):
+            client = build_openai_client(credentials)
+            response = await asyncio.wait_for(
+                client.chat.completions.create(
+                    model=model,
+                    messages=prompt_messages,
+                    max_tokens=8,
+                    temperature=0,
+                ),
+                timeout=20,
+            )
+            reply = ((response.choices[0].message.content if response.choices else "") or "").strip()
+        else:
+            if google_genai is not None:
+                os.environ["GEMINI_API_KEY"] = credentials.api_key
+                gemini_client = google_genai.Client()
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: gemini_client.models.generate_content(
+                            model=model,
+                            contents="Reply with exactly: OK",
+                        ),
+                    ),
+                    timeout=20,
+                )
+                reply = (getattr(response, "text", "") or "").strip()
+            elif legacy_genai is not None:
+                response = await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: (
+                            legacy_genai.configure(api_key=credentials.api_key),
+                            legacy_genai.GenerativeModel(model).generate_content("Reply with exactly: OK"),
+                        )[1],
+                    ),
+                    timeout=20,
+                )
+                reply = (getattr(response, "text", "") or "").strip()
+            else:
+                raise RuntimeError("Gemini SDK 未安装，无法使用当前 API_KEY 配置。")
+
+        safe_reply = redact_sensitive_text(reply, [credentials.api_key]).strip()
+        message = f"模型可用：{safe_reply}" if safe_reply else "模型可用。"
+        return {"ok": True, "model": model, "message": message}
+    except HTTPException:
+        raise
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="模型测试超时，请检查服务地址或稍后重试。") from exc
+    except OpenAIError as exc:
+        raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc), [credentials.api_key])) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc), [credentials.api_key])) from exc
+
+
+INITIAL_CREDENTIALS = load_runtime_credentials()
+if INITIAL_CREDENTIALS.api_key.startswith("sk-REPLACE_ME"):
     raise RuntimeError("请在环境变量里配置 API_KEY")
+ensure_credentials_file_mode()
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 RESPONSIVE_HTML_PROMPT = """
 你是顶级的信息可视化导演、动画设计师和前端创意工程师。你的任务是生成一个完整、可直接运行的单文件 HTML，用动画讲清楚用户主题。
@@ -134,21 +380,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization"],
 )
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-class ChatRequest(BaseModel):
-    topic: str
-    history: Optional[List[dict]] = None
-
-
-class ExportVideoRequest(BaseModel):
-    html: str = Field(..., min_length=1, max_length=EXPORT_MAX_HTML_CHARS)
-    topic: str = Field(default="animation", min_length=1, max_length=120)
-    durationSec: Optional[int] = Field(default=EXPORT_DEFAULT_DURATION_SEC)
-    width: Optional[int] = Field(default=EXPORT_DEFAULT_WIDTH)
-    height: Optional[int] = Field(default=EXPORT_DEFAULT_HEIGHT)
-    fps: Optional[int] = Field(default=EXPORT_DEFAULT_FPS)
+app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 
 
 # -----------------------------------------------------------------------
@@ -189,44 +421,15 @@ async def llm_event_stream(
     model: str = None,
 ) -> AsyncGenerator[str, None]:
     history = history or []
-
-    if model is None:
-        model = MODEL
+    credentials = load_runtime_credentials()
+    model = (model or credentials.model or "").strip()
+    if not model:
+        raise RuntimeError("MODEL 未配置。")
 
     system_prompt = generate_prompt(topic)
 
-    if USE_GEMINI:
-        try:
-            prompt_parts = [system_prompt]
-            if history:
-                history_text = "\n".join(
-                    [f"{msg['role']}: {msg['content']}" for msg in history if msg.get('content')]
-                )
-                if history_text:
-                    prompt_parts.insert(0, history_text)
-            full_prompt = "\n\n".join(prompt_parts)
-
-            response = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: gemini_client.models.generate_content(
-                    model=model,
-                    contents=full_prompt
-                )
-            )
-
-            text = response.text
-            chunk_size = 50
-
-            for i in range(0, len(text), chunk_size):
-                chunk = text[i:i + chunk_size]
-                payload = json.dumps({"token": chunk}, ensure_ascii=False)
-                yield f"data: {payload}\n\n"
-                await asyncio.sleep(0.05)
-
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            return
-    else:
+    if should_use_openai_compatible(credentials):
+        client = build_openai_client(credentials)
         messages = [
             {"role": "system", "content": system_prompt},
             *history,
@@ -250,6 +453,47 @@ async def llm_event_stream(
                 payload = json.dumps({"token": token}, ensure_ascii=False)
                 yield f"data: {payload}\n\n"
                 await asyncio.sleep(0.001)
+    else:
+        if google_genai is not None:
+            os.environ["GEMINI_API_KEY"] = credentials.api_key
+            gemini_client = google_genai.Client()
+            generate_content = lambda: gemini_client.models.generate_content(
+                model=model,
+                contents=full_prompt,
+            )
+        elif legacy_genai is not None:
+            legacy_genai.configure(api_key=credentials.api_key)
+            generate_content = lambda: legacy_genai.GenerativeModel(model).generate_content(full_prompt)
+        else:
+            raise RuntimeError("Gemini SDK 未安装，无法使用当前 API_KEY 配置。")
+
+        try:
+            prompt_parts = [system_prompt]
+            if history:
+                history_text = "\n".join(
+                    [f"{msg['role']}: {msg['content']}" for msg in history if msg.get('content')]
+                )
+                if history_text:
+                    prompt_parts.insert(0, history_text)
+            full_prompt = "\n\n".join(prompt_parts)
+
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                generate_content,
+            )
+
+            text = response.text
+            chunk_size = 50
+
+            for i in range(0, len(text), chunk_size):
+                chunk = text[i:i + chunk_size]
+                payload = json.dumps({"token": chunk}, ensure_ascii=False)
+                yield f"data: {payload}\n\n"
+                await asyncio.sleep(0.05)
+
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            return
 
     yield 'data: {"event":"[DONE]"}\n\n'
 
@@ -402,6 +646,43 @@ async def render_video_export(payload: ExportVideoRequest) -> tuple[str, str, st
 # -----------------------------------------------------------------------
 # 3. 路由
 # -----------------------------------------------------------------------
+@app.get("/settings/model")
+async def get_model_settings():
+    credentials = load_runtime_credentials()
+    return JSONResponse(
+        {
+            "baseUrl": credentials.base_url,
+            "model": credentials.model,
+            "apiKeyConfigured": bool(credentials.api_key),
+        }
+    )
+
+
+@app.post("/settings/model")
+async def update_model_settings(payload: ModelSettingsUpdateRequest):
+    credentials = await save_runtime_credentials(payload)
+    return JSONResponse(
+        {
+            "ok": True,
+            "baseUrl": credentials.base_url,
+            "model": credentials.model,
+            "apiKeyConfigured": bool(credentials.api_key),
+        }
+    )
+
+
+@app.post("/settings/model/test")
+async def test_model_settings(payload: ModelSettingsTestRequest):
+    current = load_runtime_credentials()
+    credentials = RuntimeCredentials(
+        API_KEY=current.api_key if payload.apiKey in (None, "") else payload.apiKey,
+        BASE_URL=payload.baseUrl,
+        MODEL=payload.model,
+    )
+    result = await run_model_test(credentials)
+    return JSONResponse(result)
+
+
 @app.post("/generate")
 async def generate(
     chat_request: ChatRequest,
@@ -456,8 +737,8 @@ async def read_index(request: Request):
         "index.html",
         {
             "request": request,
-            "time": datetime.now(shanghai_tz).strftime("%Y%m%d%H%M%S")
-        }
+            "time": datetime.now(shanghai_tz).strftime("%Y%m%d%H%M%S"),
+        },
     )
 
 

@@ -18,6 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
         newChatTitle: { zh: "新对话", en: "New Chat" },
         recentConversations: { zh: "近期对话", en: "Recent Conversations" },
         recentHint: { zh: "快速继续最近的灵感", en: "Jump back into recent ideas" },
+        howItWorksEyebrow: { zh: "工作方式", en: "How It Works" },
+        howItWorksTitle: { zh: "工作方式", en: "How It Works" },
+        howItWorksSummary: { zh: "从一个想法出发，几步就能得到可探索、可保存的动态动画页面。", en: "Start with an idea and turn it into an interactive animation you can explore and save in just a few steps." },
+        workflowStep1Title: { zh: "输入概念", en: "Enter Your Concept" },
+        workflowStep1Desc: { zh: "输入一个概念、问题、关键词，或你想讲清楚的主题。", en: "Type in a concept, question, keyword, or topic you want to explain clearly." },
+        workflowStep2Title: { zh: "AI 分析", en: "AI Analysis" },
+        workflowStep2Desc: { zh: "Fogsight 会拆解结构、识别重点，并组织适合动画表达的内容逻辑。", en: "Fogsight breaks down the structure, finds the key ideas, and organizes them into a story fit for animation." },
+        workflowStep3Title: { zh: "生成动画", en: "Generate Animation" },
+        workflowStep3Desc: { zh: "自动输出可直接预览的动态 HTML 动画，而不只是静态图示。", en: "Generate a dynamic HTML animation you can preview immediately, not just a static diagram." },
+        workflowStep4Title: { zh: "探索与导出", en: "Explore & Export" },
+        workflowStep4Desc: { zh: "继续对话优化版本，保存 HTML，或导出为视频用于分享与演示。", en: "Refine it through follow-up prompts, save the HTML, or export a video for sharing and presentations." },
+        capabilitiesEyebrow: { zh: "适用场景", en: "Capabilities" },
+        capabilitiesTitle: { zh: "它能做什么", en: "What It Can Do" },
+        capabilitiesSummary: { zh: "把复杂概念转成更容易理解、展示和分享的动态 HTML 动画。", en: "Turn complex ideas into dynamic HTML animations that are easier to understand, present, and share." },
+        capabilityScience: { zh: "科学原理", en: "Science Concepts" },
+        capabilityMath: { zh: "数学公式", en: "Math Explanations" },
+        capabilityAlgorithms: { zh: "算法流程", en: "Algorithms" },
+        capabilityBusiness: { zh: "商业模型", en: "Business Models" },
+        capabilityEducation: { zh: "教育主题", en: "Education Topics" },
+        capabilityPresentation: { zh: "演示素材", en: "Presentation Visuals" },
         currentConversationLabel: { zh: "当前对话", en: "Current Chat" },
         noHistory: { zh: "暂无历史", en: "No recent conversations" },
         noRecentConversations: { zh: "暂无近期对话", en: "No recent conversations" },
@@ -64,6 +84,28 @@ document.addEventListener('DOMContentLoaded', () => {
         exportVideoRecording: { zh: "请在共享选择器中选择新打开的 Fogsight 播放窗口；停止共享后会自动下载 WebM。", en: "Select the newly opened Fogsight playback window in the share picker. The WebM download will start after you stop sharing." },
         exportVideoAlreadyRecording: { zh: "视频导出正在进行中，请先完成或停止当前屏幕共享。", en: "Video export is already in progress. Please finish or stop the current screen share first." },
         close: { zh: "关闭", en: "Close" },
+        cancel: { zh: "取消", en: "Cancel" },
+        saveSettings: { zh: "保存设置", en: "Save Settings" },
+        testModel: { zh: "测试模型", en: "Test model" },
+        modelSettings: { zh: "模型设置", en: "Model Settings" },
+        modelSettingsTitle: { zh: "模型设置 / Model Settings", en: "Model Settings" },
+        modelSettingsDescription: { zh: "查看并更新当前模型配置。API Key 不会回显；留空则保持不变。", en: "Review and update the active model configuration. The API key is never shown; leave it blank to keep the current key." },
+        modelSettingsLoading: { zh: "正在加载当前配置...", en: "Loading current configuration..." },
+        modelSettingsCurrent: { zh: "当前：MODEL={model} · BASE_URL={baseUrl}", en: "Current: MODEL={model} · BASE_URL={baseUrl}" },
+        modelSettingsApiKeyConfigured: { zh: "API Key 已配置", en: "API key configured" },
+        modelSettingsApiKeyMissing: { zh: "API Key 未配置", en: "API key not configured" },
+        modelSettingsLoadFailed: { zh: "加载模型设置失败，请稍后重试。", en: "Failed to load model settings. Please try again." },
+        modelSettingsSaved: { zh: "模型设置已保存。", en: "Model settings saved." },
+        modelSettingsSaveFailed: { zh: "保存模型设置失败，请检查输入后重试。", en: "Failed to save model settings. Please check the input and try again." },
+        modelTestIdle: { zh: "未测试", en: "Not tested" },
+        modelTestRunning: { zh: "测试中...", en: "Testing..." },
+        modelTestSuccess: { zh: "测试成功", en: "Test passed" },
+        modelTestFailed: { zh: "测试失败", en: "Test failed" },
+        modelTestAvailable: { zh: "模型可用", en: "Model is available" },
+        modelTestRequestFailed: { zh: "模型测试失败，请检查配置后重试。", en: "Model test failed. Please check the configuration and try again." },
+        modelRequiredWarning: { zh: "MODEL 不能为空。", en: "MODEL cannot be empty." },
+        baseUrlRequiredWarning: { zh: "BASE_URL 不能为空。", en: "BASE_URL cannot be empty." },
+        apiKeyPlaceholder: { zh: "留空则不修改 / Leave blank to keep current key", en: "Leave blank to keep current key" },
         errorMessage: { zh: "抱歉，服务出现了一点问题。请稍后重试。", en: "Sorry, something went wrong. Please try again later." },
         errorFetchFailed: { zh: "LLM服务不可用，请稍后再试", en: "LLM service is unavailable. Please try again later." },
         errorTooManyRequests: { zh: "今天已经使用太多，请明天再试", en: "Too many requests today. Please try again tomorrow." },
@@ -76,6 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let currentLang = config.defaultLang;
+    let modelSettingsState = {
+        model: '',
+        baseUrl: '',
+        apiKeyConfigured: false,
+        loaded: false,
+        testing: false,
+        testStatus: 'idle',
+        testMessage: '',
+    };
     let isVideoExporting = false;
     let activeRecordingBlobUrl = null;
     const body = document.body;
@@ -98,6 +149,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const featureModal = document.getElementById('feature-modal');
     const modalActionButton = document.getElementById('modal-github-button');
     const modalCloseButton = document.getElementById('modal-close-button');
+    const openSettingsButton = document.getElementById('open-settings-button');
+    const chatSettingsButton = document.getElementById('chat-settings-button');
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsForm = document.getElementById('settings-form');
+    const settingsCloseButton = document.getElementById('settings-close-button');
+    const settingsCancelButton = document.getElementById('settings-cancel-button');
+    const settingsSaveButton = document.getElementById('settings-save-button');
+    const settingsTestButton = document.getElementById('settings-test-button');
+    const settingsModelInput = document.getElementById('settings-model-input');
+    const settingsBaseUrlInput = document.getElementById('settings-base-url-input');
+    const settingsApiKeyInput = document.getElementById('settings-api-key-input');
+    const settingsApiKeyStatus = document.getElementById('settings-api-key-status');
+    const settingsCurrentConfig = document.getElementById('settings-current-config');
+    const settingsTestStatus = document.getElementById('settings-test-status');
 
     const templates = {
         user: document.getElementById('user-message-template'),
@@ -822,6 +887,205 @@ body {
         return `${config.apiBaseUrl}${pathname}`;
     }
 
+    function formatModelSettingsCurrent(model, baseUrl) {
+        const template = translations.modelSettingsCurrent[currentLang];
+        return template
+            .replace('{model}', model || '--')
+            .replace('{baseUrl}', baseUrl || '--');
+    }
+
+    function renderModelTestState() {
+        if (!settingsTestStatus || !settingsTestButton) return;
+
+        const statusMap = {
+            idle: { text: translations.modelTestIdle[currentLang], state: 'idle' },
+            testing: { text: translations.modelTestRunning[currentLang], state: 'testing' },
+            success: { text: modelSettingsState.testMessage || translations.modelTestSuccess[currentLang], state: 'success' },
+            failed: { text: modelSettingsState.testMessage || translations.modelTestFailed[currentLang], state: 'failed' },
+        };
+
+        const currentStatus = statusMap[modelSettingsState.testStatus] || statusMap.idle;
+        settingsTestStatus.textContent = currentStatus.text;
+        settingsTestStatus.dataset.state = currentStatus.state;
+        settingsTestButton.disabled = modelSettingsState.testing;
+        settingsTestButton.dataset.loading = modelSettingsState.testing ? 'true' : 'false';
+    }
+
+    function renderModelSettingsState() {
+        if (!settingsCurrentConfig || !settingsApiKeyStatus) return;
+        if (!modelSettingsState.loaded) {
+            settingsCurrentConfig.textContent = translations.modelSettingsLoading[currentLang];
+            settingsApiKeyStatus.textContent = 'API Key: --';
+            settingsApiKeyStatus.dataset.configured = 'unknown';
+            renderModelTestState();
+            return;
+        }
+
+        settingsCurrentConfig.textContent = formatModelSettingsCurrent(modelSettingsState.model, modelSettingsState.baseUrl);
+        settingsApiKeyStatus.textContent = modelSettingsState.apiKeyConfigured
+            ? translations.modelSettingsApiKeyConfigured[currentLang]
+            : translations.modelSettingsApiKeyMissing[currentLang];
+        settingsApiKeyStatus.dataset.configured = modelSettingsState.apiKeyConfigured ? 'true' : 'false';
+        renderModelTestState();
+    }
+
+    function setSettingsFormDisabled(disabled) {
+        [settingsModelInput, settingsBaseUrlInput, settingsApiKeyInput, settingsCancelButton, settingsSaveButton].forEach((element) => {
+            if (!element) return;
+            element.disabled = disabled;
+        });
+        if (settingsTestButton) {
+            settingsTestButton.disabled = disabled || modelSettingsState.testing;
+        }
+    }
+
+    async function fetchModelSettings() {
+        const response = await fetch(getApiBaseUrl('/settings/model'), { method: 'GET' });
+        if (!response.ok) throw new Error(await parseErrorDetail(response));
+        const data = await response.json();
+        modelSettingsState = {
+            model: data.model || '',
+            baseUrl: data.baseUrl || '',
+            apiKeyConfigured: Boolean(data.apiKeyConfigured),
+            loaded: true,
+        };
+        return modelSettingsState;
+    }
+
+    async function openSettingsModal() {
+        if (!settingsModal) return;
+        settingsModal.classList.add('visible');
+        settingsModal.setAttribute('aria-hidden', 'false');
+        settingsCurrentConfig.textContent = translations.modelSettingsLoading[currentLang];
+        settingsApiKeyStatus.textContent = 'API Key: --';
+        settingsApiKeyStatus.dataset.configured = 'unknown';
+        settingsApiKeyInput.value = '';
+        modelSettingsState.testing = false;
+        modelSettingsState.testStatus = 'idle';
+        modelSettingsState.testMessage = '';
+        renderModelTestState();
+        setSettingsFormDisabled(true);
+
+        try {
+            const settings = await fetchModelSettings();
+            settingsModelInput.value = settings.model;
+            settingsBaseUrlInput.value = settings.baseUrl;
+            settingsApiKeyInput.value = '';
+            renderModelSettingsState();
+        } catch (error) {
+            console.error('Failed to fetch model settings:', error);
+            showWarning(`${translations.modelSettingsLoadFailed[currentLang]} ${error?.message || ''}`.trim());
+        } finally {
+            setSettingsFormDisabled(false);
+            settingsModelInput?.focus();
+        }
+    }
+
+    function closeSettingsModal() {
+        if (!settingsModal) return;
+        settingsModal.classList.remove('visible');
+        settingsModal.setAttribute('aria-hidden', 'true');
+        settingsApiKeyInput.value = '';
+        modelSettingsState.testing = false;
+        renderModelTestState();
+    }
+
+    async function handleSettingsTest() {
+        const model = settingsModelInput.value.trim();
+        const baseUrl = settingsBaseUrlInput.value.trim();
+        const apiKey = settingsApiKeyInput.value.trim();
+
+        if (!model) {
+            showWarning(translations.modelRequiredWarning[currentLang]);
+            settingsModelInput.focus();
+            return;
+        }
+        if (!baseUrl) {
+            showWarning(translations.baseUrlRequiredWarning[currentLang]);
+            settingsBaseUrlInput.focus();
+            return;
+        }
+
+        modelSettingsState.testing = true;
+        modelSettingsState.testStatus = 'testing';
+        modelSettingsState.testMessage = '';
+        renderModelTestState();
+
+        try {
+            const response = await fetch(getApiBaseUrl('/settings/model/test'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model,
+                    baseUrl,
+                    apiKey: apiKey || '',
+                }),
+            });
+
+            if (!response.ok) throw new Error(await parseErrorDetail(response));
+            const data = await response.json();
+            modelSettingsState.testStatus = 'success';
+            modelSettingsState.testMessage = data?.message || translations.modelTestAvailable[currentLang];
+        } catch (error) {
+            console.error('Failed to test model settings:', error);
+            modelSettingsState.testStatus = 'failed';
+            modelSettingsState.testMessage = `${translations.modelTestRequestFailed[currentLang]} ${error?.message || ''}`.trim();
+        } finally {
+            modelSettingsState.testing = false;
+            renderModelTestState();
+        }
+    }
+
+    async function handleSettingsSave(event) {
+        event.preventDefault();
+        const model = settingsModelInput.value.trim();
+        const baseUrl = settingsBaseUrlInput.value.trim();
+        const apiKey = settingsApiKeyInput.value.trim();
+
+        if (!model) {
+            showWarning(translations.modelRequiredWarning[currentLang]);
+            settingsModelInput.focus();
+            return;
+        }
+        if (!baseUrl) {
+            showWarning(translations.baseUrlRequiredWarning[currentLang]);
+            settingsBaseUrlInput.focus();
+            return;
+        }
+
+        setSettingsFormDisabled(true);
+        try {
+            const response = await fetch(getApiBaseUrl('/settings/model'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model,
+                    baseUrl,
+                    apiKey: apiKey || '',
+                }),
+            });
+
+            if (!response.ok) throw new Error(await parseErrorDetail(response));
+            const data = await response.json();
+            modelSettingsState = {
+                ...modelSettingsState,
+                model: data.model || model,
+                baseUrl: data.baseUrl || baseUrl,
+                apiKeyConfigured: Boolean(data.apiKeyConfigured),
+                loaded: true,
+            };
+            renderModelSettingsState();
+            settingsApiKeyInput.value = '';
+            showWarning(`${translations.modelSettingsSaved[currentLang]} ${formatModelSettingsCurrent(modelSettingsState.model, modelSettingsState.baseUrl)}`);
+            closeSettingsModal();
+        } catch (error) {
+            console.error('Failed to save model settings:', error);
+            showWarning(`${translations.modelSettingsSaveFailed[currentLang]} ${error?.message || ''}`.trim());
+        } finally {
+            setSettingsFormDisabled(false);
+        }
+    }
+
     async function parseErrorDetail(response) {
         try {
             const data = await response.json();
@@ -1506,6 +1770,7 @@ setTimeout(() => {
         });
         renderRecentConversations();
         updateCurrentChatTitle(getCurrentConversation()?.title || (conversationHistory.length ? translations.currentConversationUntitled[lang] : translations.newConversationDefault[lang]));
+        renderModelSettingsState();
         languageSwitcher.querySelectorAll('button').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.lang === lang);
         });
@@ -1539,6 +1804,15 @@ setTimeout(() => {
         }
 
         modalCloseButton.addEventListener('click', hideModal);
+        openSettingsButton?.addEventListener('click', openSettingsModal);
+        chatSettingsButton?.addEventListener('click', openSettingsModal);
+        settingsCloseButton?.addEventListener('click', closeSettingsModal);
+        settingsCancelButton?.addEventListener('click', closeSettingsModal);
+        settingsModal?.addEventListener('click', (event) => {
+            if (event.target === settingsModal) closeSettingsModal();
+        });
+        settingsForm?.addEventListener('submit', handleSettingsSave);
+        settingsTestButton?.addEventListener('click', handleSettingsTest);
         featureModal.addEventListener('click', (e) => {
             if (e.target === featureModal) hideModal();
         });

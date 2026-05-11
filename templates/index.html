@@ -16,9 +16,12 @@
 </head>
 <body class="show-initial-view">
 
-    <div id="language-switcher" class="language-switcher">
-        <button data-lang="zh">中</button>
-        <button data-lang="en">EN</button>
+    <div class="top-right-controls">
+        <button id="open-settings-button" class="settings-trigger" type="button" data-translate-key="modelSettings">模型设置</button>
+        <div id="language-switcher" class="language-switcher">
+            <button data-lang="zh">中</button>
+            <button data-lang="en">EN</button>
+        </div>
     </div>
 
     <div id="initial-view" class="initial-view">
@@ -35,16 +38,72 @@
                     </button>
                 </form>
             </div>
-            <section id="initial-recent-conversations" class="initial-recent-conversations" aria-labelledby="initial-recent-conversations-title">
-                <div class="initial-recent-header">
-                    <div>
-                        <span class="section-eyebrow">Recent</span>
-                        <h2 id="initial-recent-conversations-title" data-translate-key="recentConversations">近期对话</h2>
+            <section class="initial-product-intro" aria-labelledby="initial-how-it-works-title">
+                <div class="intro-grid">
+                    <article class="intro-card intro-card-steps">
+                        <div class="intro-card-header">
+                            <div>
+                                <span class="section-eyebrow" data-translate-key="howItWorksEyebrow">How It Works</span>
+                                <h2 id="initial-how-it-works-title" data-translate-key="howItWorksTitle">工作方式</h2>
+                            </div>
+                            <p class="intro-card-note" data-translate-key="howItWorksSummary">从一个想法出发，几步就能得到可探索、可保存的动态动画页面。</p>
+                        </div>
+                        <div class="workflow-steps">
+                            <article class="workflow-step-card">
+                                <span class="workflow-step-number">01</span>
+                                <h3 data-translate-key="workflowStep1Title">输入概念</h3>
+                                <p data-translate-key="workflowStep1Desc">输入一个概念、问题、关键词，或你想讲清楚的主题。</p>
+                            </article>
+                            <article class="workflow-step-card">
+                                <span class="workflow-step-number">02</span>
+                                <h3 data-translate-key="workflowStep2Title">AI 分析</h3>
+                                <p data-translate-key="workflowStep2Desc">Fogsight 会拆解结构、识别重点，并组织适合动画表达的内容逻辑。</p>
+                            </article>
+                            <article class="workflow-step-card">
+                                <span class="workflow-step-number">03</span>
+                                <h3 data-translate-key="workflowStep3Title">生成动画</h3>
+                                <p data-translate-key="workflowStep3Desc">自动输出可直接预览的动态 HTML 动画，而不只是静态图示。</p>
+                            </article>
+                            <article class="workflow-step-card">
+                                <span class="workflow-step-number">04</span>
+                                <h3 data-translate-key="workflowStep4Title">探索与导出</h3>
+                                <p data-translate-key="workflowStep4Desc">继续对话优化版本，保存 HTML，或导出为视频用于分享与演示。</p>
+                            </article>
+                        </div>
+                    </article>
+
+                    <div class="intro-side-stack">
+                        <article class="intro-card intro-card-capabilities">
+                            <div class="intro-card-header compact">
+                                <div>
+                                    <span class="section-eyebrow" data-translate-key="capabilitiesEyebrow">Capabilities</span>
+                                    <h2 data-translate-key="capabilitiesTitle">它能做什么</h2>
+                                </div>
+                                <p class="intro-card-note" data-translate-key="capabilitiesSummary">把复杂概念转成更容易理解、展示和分享的动态 HTML 动画。</p>
+                            </div>
+                            <div class="capability-tags" aria-label="Fogsight capabilities">
+                                <span class="capability-tag" data-translate-key="capabilityScience">科学原理</span>
+                                <span class="capability-tag" data-translate-key="capabilityMath">数学公式</span>
+                                <span class="capability-tag" data-translate-key="capabilityAlgorithms">算法流程</span>
+                                <span class="capability-tag" data-translate-key="capabilityBusiness">商业模型</span>
+                                <span class="capability-tag" data-translate-key="capabilityEducation">教育主题</span>
+                                <span class="capability-tag" data-translate-key="capabilityPresentation">演示素材</span>
+                            </div>
+                        </article>
+
+                        <section id="initial-recent-conversations" class="initial-recent-conversations" aria-labelledby="initial-recent-conversations-title">
+                            <div class="initial-recent-header">
+                                <div>
+                                    <span class="section-eyebrow">Recent</span>
+                                    <h2 id="initial-recent-conversations-title" data-translate-key="recentConversations">近期对话</h2>
+                                </div>
+                                <span class="initial-recent-note" data-translate-key="recentHint">快速继续最近的灵感</span>
+                            </div>
+                            <div id="initial-recent-conversations-list" class="initial-recent-conversations-list"></div>
+                            <p id="initial-recent-conversations-empty" class="initial-recent-conversations-empty" data-translate-key="noRecentConversations">暂无近期对话</p>
+                        </section>
                     </div>
-                    <span class="initial-recent-note" data-translate-key="recentHint">快速继续最近的灵感</span>
                 </div>
-                <div id="initial-recent-conversations-list" class="initial-recent-conversations-list"></div>
-                <p id="initial-recent-conversations-empty" class="initial-recent-conversations-empty" data-translate-key="noRecentConversations">暂无近期对话</p>
             </section>
              <footer class="initial-footer">
                 <a href="https://github.com/fogsightai/fogsight" target="_blank" data-translate-key="githubrepo">Github 开源仓库</a>
@@ -81,6 +140,7 @@
                     </button>
                 </div>
                 <div class="chat-header-right">
+                    <button id="chat-settings-button" class="settings-trigger settings-trigger-chat" type="button" data-translate-key="modelSettings">模型设置</button>
                     <div id="current-chat-title" class="current-chat-title" aria-live="polite">
                         <span class="current-chat-title-label" data-translate-key="currentConversationLabel">当前对话</span>
                         <div class="current-chat-title-main">
@@ -179,6 +239,45 @@
             <button id="modal-close-button" class="modal-close-button" title="Close">×</button>
             <p data-translate-key="featureComingSoon">该功能正在开发中...</p>
             <button id="modal-github-button" class="modal-button" data-translate-key="close">关闭</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay settings-modal" aria-hidden="true">
+        <div class="modal-content settings-modal-content">
+            <button id="settings-close-button" class="modal-close-button" title="Close">×</button>
+            <div class="settings-modal-header">
+                <span class="section-eyebrow" data-translate-key="modelSettings">模型设置</span>
+                <h2 data-translate-key="modelSettingsTitle">模型设置 / Model Settings</h2>
+                <p data-translate-key="modelSettingsDescription">查看并更新当前模型配置。API Key 不会回显；留空则保持不变。</p>
+            </div>
+            <form id="settings-form" class="settings-form">
+                <label class="settings-field">
+                    <span class="settings-label">MODEL</span>
+                    <input id="settings-model-input" name="model" type="text" autocomplete="off" required>
+                </label>
+                <label class="settings-field">
+                    <span class="settings-label">BASE_URL</span>
+                    <input id="settings-base-url-input" name="baseUrl" type="url" autocomplete="off" required>
+                </label>
+                <label class="settings-field">
+                    <span class="settings-label">API_KEY</span>
+                    <input id="settings-api-key-input" name="apiKey" type="password" autocomplete="new-password" data-translate-key="apiKeyPlaceholder" placeholder="留空则不修改 / Leave blank to keep current key">
+                </label>
+                <div class="settings-status-row">
+                    <span class="settings-status-pill" id="settings-api-key-status">API Key: --</span>
+                    <span class="settings-status-text" id="settings-current-config" data-translate-key="modelSettingsLoading">正在加载当前配置...</span>
+                </div>
+                <div class="settings-actions">
+                    <div class="settings-actions-primary">
+                        <button type="button" id="settings-test-button" class="modal-button modal-button-secondary" data-translate-key="testModel">测试模型</button>
+                        <span id="settings-test-status" class="settings-test-status" data-state="idle" data-translate-key="modelTestIdle">未测试</span>
+                    </div>
+                    <div class="settings-actions-secondary">
+                        <button type="button" id="settings-cancel-button" class="modal-button modal-button-secondary" data-translate-key="cancel">取消</button>
+                        <button type="submit" id="settings-save-button" class="modal-button" data-translate-key="saveSettings">保存设置</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
