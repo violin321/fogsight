@@ -53,9 +53,24 @@
 - 录制清晰度、码率与稳定性依赖浏览器实现和本机性能。
 - 近期对话保存在当前浏览器 `localStorage`，清理浏览器数据或更换设备后不会同步。
 
+### 模型设置（UI）
+
+当前 fork 已提供前端 **模型设置 / Model Settings** 弹窗，可直接在页面内查看和更新运行时模型配置：
+
+- 可修改 `MODEL`、`BASE_URL`、`API_KEY`。
+- 前端会通过 `GET /settings/model` 读取当前 `MODEL` 与 `BASE_URL`，并仅显示 **API Key 是否已配置**，**不会回显已有 key 内容**。
+- 保存时会调用 `POST /settings/model`；如果 `API_KEY` 输入框留空，则**保留当前旧 key**，不会被空值覆盖。
+- 可使用 **测试模型** 按钮调用 `POST /settings/model/test`，先验证当前输入的模型配置是否可连通，再决定是否保存。
+
+适合以下场景：
+- 在同一套部署里快速切换不同模型或网关。
+- 临时替换 API Key 而不希望在页面里泄露旧 key。
+- 修改配置前先测试连接，避免保存后才发现不可用。
+
 ### 安全与部署提示
 
 - **不要提交 `credentials.json`**，请仅在本地或受控环境保存 API 密钥。
+- 模型设置接口会把运行时配置写回本地 `credentials.json`；请确保该文件只存在于受控环境，并做好文件权限控制。
 - 如果要部署到公网，务必自行增加认证、限流或前置网关保护；应用本身**没有账号系统**，直接暴露会有滥用风险。
 
 ### 许可证提醒
@@ -137,13 +152,30 @@
    pip install -r requirements.txt
    ```
 
-3. **配置API密钥:**
+3. **配置初始模型参数（首次启动前）:**
 
    ```bash
    cp demo-credentials.json credentials.json
-   # 复制 demo-credentials.json 文件并重命名为 credentials.json
-   # 编辑 credentials.json 文件，填入您的 API_KEY 和 BASE_URL。
-   # **请注意**，我们使用的是与 OpenAI 兼容的 SDK，但您仍应使用Gemini 2.5 pro
+   # 复制 demo-credentials.json 为 credentials.json
+   # 编辑 credentials.json，填入 API_KEY、BASE_URL 和 MODEL
+   ```
+
+   常见示例：
+
+   ```json
+   {
+     "API_KEY": "你的 Gemini 密钥",
+     "BASE_URL": "",
+     "MODEL": "gemini-2.5-pro"
+   }
+   ```
+
+   ```json
+   {
+     "API_KEY": "sk-or-v1-你的 OpenRouter 密钥",
+     "BASE_URL": "https://openrouter.ai/api/v1",
+     "MODEL": "anthropic/claude-sonnet-4"
+   }
    ```
 
 4. **一键启动:**
@@ -157,7 +189,13 @@
 5. **开始创作！**
    在页面中输入一个主题（例如"冒泡排序"），然后等待结果生成。
 
-6. **生成后继续操作：**
+6. **按需使用模型设置 UI：**
+   - 打开页面中的 **模型设置 / Model Settings**。
+   - 查看当前 `MODEL` / `BASE_URL`，以及 API Key 是否已配置。
+   - 如需更换模型或网关，修改后可先点 **测试模型** 验证连通性。
+   - 保存时如果 `API_KEY` 留空，会继续沿用旧 key，不会清空。
+
+7. **生成后继续操作：**
    - 需要重开一版：使用 **Regenerate**。
    - 需要在当前成果上继续打磨：使用 **Improve this version**。
    - 需要导出录屏：在桌面 Chrome / Edge 中使用视频导出并按指引选择黑色 Recording 窗口。
@@ -210,7 +248,12 @@
 5. **访问应用:**
    打开浏览器访问 `http://localhost:8000`（或您指定的端口）
 
-6. **停止服务:**
+6. **在页面中调整模型配置（可选）:**
+   - 首次启动后可在前端 **模型设置** 弹窗中调整 `MODEL`、`BASE_URL`、`API_KEY`。
+   - `API_KEY` 不会在界面中回显；若留空保存，则保持当前旧 key。
+   - 建议保存前先点击 **测试模型** 验证连接。
+
+7. **停止服务:**
    ```bash
    docker-compose down
    ```
