@@ -24,6 +24,28 @@
 
 雾象，意为 **“在模糊智能中的具象”**。*雾象是 WaytoAGI 开源计划项目成员。 WaytoAGI， 让更多人因 AI 而强大*
 
+## 界面预览
+
+### 桌面端
+
+![首页](screenshots/homepage-desktop.png)
+
+![模型设置](screenshots/model-settings-desktop.png)
+
+![工作区](screenshots/workspace-desktop.png)
+
+### iPad
+
+![iPad 首页](screenshots/homepage-ipad.png)
+
+![iPad 模型设置](screenshots/model-settings-ipad.png)
+
+### iPhone
+
+![iPhone 首页](screenshots/homepage-iphone.png)
+
+![iPhone 模型设置](screenshots/model-settings-iphone.png)
+
 ## 自用增强说明 / Fork enhancements
 
 > 本仓库是 [`violin321/fogsight`](https://github.com/violin321/fogsight) 的自用增强版 fork，保留上游版权与许可证声明，不改变原项目的归属关系。
