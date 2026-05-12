@@ -1384,6 +1384,47 @@ button.is-disabled,
     .player-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    /* Tablet settings modal: single-column, compact */
+    .settings-modal-content {
+        width: min(92vw, 640px);
+        max-height: calc(100vh - 3rem);
+        padding: 1.6rem 1.4rem 1.2rem;
+    }
+
+    .settings-modal-header {
+        margin-bottom: 0.9rem;
+    }
+
+    .settings-modal-header h2 {
+        font-size: 1.3rem;
+    }
+
+    .settings-modal-header p {
+        font-size: 0.88rem;
+    }
+
+    .settings-form > .settings-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-side-panel {
+        order: -1;
+    }
+
+    .settings-side-card {
+        padding: 0.9rem;
+    }
+
+    .settings-actions {
+        position: sticky;
+        bottom: 0;
+        margin: 0 -1.4rem -1.2rem;
+        padding: 0.75rem 1.4rem;
+        background: linear-gradient(0deg, rgba(247,250,255,0.97) 75%, rgba(247,250,255,0));
+        border-radius: 0 0 28px 28px;
+        z-index: 2;
+    }
 }
 
 @media (max-width: 720px) {
@@ -1442,7 +1483,7 @@ button.is-disabled,
     .hero-metrics,
     .intro-grid,
     .workflow-steps,
-    .settings-layout {
+    .settings-form > .settings-layout {
         grid-template-columns: 1fr;
         display: grid;
     }
