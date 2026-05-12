@@ -34,7 +34,7 @@ This fork adds a few workflow-focused improvements for day-to-day use:
 - **Metapi reasoning-route compatibility**: for local Metapi, `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low` are mapped to `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)`.
 - **Regenerate**: regenerate from the original topic for a fresh version.
 - **Improve this version**: continue from the current HTML result to improve visual hierarchy, motion, mobile adaptation, and clarity of explanation.
-- **Usability fixes**: scrolling fix for Open in new window, cleanup of fenced code `html` markers, stronger responsive prompt guidance, recording-window fit-to-view, recent-conversation UI polish, Model Settings modal polish, and mobile header fixes.
+- **Usability fixes**: scrolling fix for Open in new window, cleanup of fenced code `html` markers, stronger responsive prompt guidance, recording-window fit-to-view, recent-conversation UI polish, Model Settings modal polish, iPad/iPhone responsive fixes, and mobile header fixes.
 
 ### Suggested workflow
 

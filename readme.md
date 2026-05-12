@@ -37,7 +37,7 @@
 - **Metapi reasoning 路由兼容**：在本机 Metapi 场景下，可将 `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low` 自动映射到 `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)`。
 - **Regenerate**：基于原始 topic 重新生成新版本，便于回到初始意图重做。
 - **Improve this version**：基于当前 HTML 结果继续优化视觉层次、动效、移动端适配和解释清晰度。
-- **若干可用性修复**：包括 Open in new window 的滚动修复、fenced code 中 `html` 标记清理、更强的响应式 prompt 引导、录制窗口适配缩放、近期对话 UI、模型设置弹窗和移动端 header 优化。
+- **若干可用性修复**：包括 Open in new window 的滚动修复、fenced code 中 `html` 标记清理、更强的响应式 prompt 引导、录制窗口适配缩放、近期对话 UI、模型设置弹窗、iPad/iPhone 响应式适配和移动端 header 优化。
 
 ### 建议使用流程
 
