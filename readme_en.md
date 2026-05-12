@@ -29,9 +29,12 @@ This fork adds a few workflow-focused improvements for day-to-day use:
 
 - **Official-style browser video export**: aligned with the Fogsight official flow using `getDisplayMedia` + `MediaRecorder`; opens a Recording window, asks for screen-share permission, and downloads the recording. MP4 is preferred when supported, with WebM fallback.
 - **Recent conversations**: stores recent sessions in browser `localStorage`, with homepage/sidebar access, restore, rename, delete, and generation-time locking to avoid state conflicts.
+- **Homepage and workspace UI polish**: adds official-style “How it works / What it can do / Recent conversations” sections and unifies desktop/mobile header controls, brand logo placement, Model Settings entry points, and responsive workspace layout.
+- **Model settings and connectivity test**: update `MODEL` / `BASE_URL` / `API_KEY` in the UI; test results use a short status plus a detail panel so long errors do not break the layout.
+- **Metapi reasoning-route compatibility**: for local Metapi, `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low` are mapped to `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)`.
 - **Regenerate**: regenerate from the original topic for a fresh version.
 - **Improve this version**: continue from the current HTML result to improve visual hierarchy, motion, mobile adaptation, and clarity of explanation.
-- **Usability fixes**: scrolling fix for Open in new window, cleanup of fenced code `html` markers, stronger responsive prompt guidance, recording-window fit-to-view, and polished recent-conversation UI.
+- **Usability fixes**: scrolling fix for Open in new window, cleanup of fenced code `html` markers, stronger responsive prompt guidance, recording-window fit-to-view, recent-conversation UI polish, Model Settings modal polish, and mobile header fixes.
 
 ### Suggested workflow
 
@@ -58,6 +61,8 @@ This fork now includes a front-end **Model Settings** modal so you can inspect a
 - The UI calls `GET /settings/model` to load the current `MODEL` and `BASE_URL`, and shows only whether an API key is configured. **Existing API keys are never echoed back to the page.**
 - Saving uses `POST /settings/model`. If the `API_KEY` field is left blank, the current key is **kept unchanged** instead of being overwritten with an empty value.
 - The **Test model** button calls `POST /settings/model/test` so you can verify connectivity before saving.
+- Test results are rendered as a short status (for example, “Model is available” or “Test failed”) with a separate detail panel for `apiModel`, routing mode, and error details.
+- Local Metapi reasoning aliases are supported: `gpt-5.5-high` / `medium` / `low` are sent as `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)`.
 
 This is useful when you want to:
 - switch models or gateways without editing files by hand,
@@ -67,7 +72,7 @@ This is useful when you want to:
 ### Security and deployment notes
 
 - **Do not commit `credentials.json`**. Keep API keys only in local or otherwise controlled environments.
-- The model-settings endpoints write runtime configuration back to the local `credentials.json`, so keep that file in a controlled environment and protect its file permissions.
+- The model-settings endpoints write runtime configuration to a local controlled config file (preferring `data/credentials.local.json` as an overlay over the initial `credentials.json`), so keep those files protected and out of version control.
 - If you expose this app to the public internet, add your own authentication, rate limiting, or gateway protection. The app itself has **no account system**, so direct public exposure is risky.
 
 ### License reminder
@@ -228,6 +233,7 @@ If you prefer using Docker, follow these steps:
    - After startup, you can use the front-end **Model Settings** modal to change `MODEL`, `BASE_URL`, and `API_KEY`.
    - The current API key is never shown back in the UI; leaving the field blank keeps the existing key.
    - It is recommended to click **Test model** before saving.
+   - For local Metapi, you can enter `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low`; the app maps them to Metapi's parenthesized reasoning routes automatically.
 
 7. **Stop the service**
    ```bash

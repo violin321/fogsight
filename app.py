@@ -8,6 +8,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
+from urllib.parse import urlparse
 from uuid import uuid4
 
 import pytz
@@ -212,6 +213,40 @@ def should_use_openai_compatible(credentials: RuntimeCredentials) -> bool:
     return credentials.api_key.startswith("sk-")
 
 
+def is_local_metapi_base_url(base_url: str) -> bool:
+    parsed = urlparse((base_url or "").strip())
+    host = (parsed.hostname or "").lower()
+    return host in {"127.0.0.1", "localhost", "host.docker.internal"} and parsed.port == 4000
+
+
+def normalize_reasoning_model_name(model: str, base_url: str = "") -> dict[str, str]:
+    normalized = (model or "").strip()
+    match = re.match(r"^(?P<base>.+)-(?P<effort>low|medium|high)$", normalized, flags=re.IGNORECASE)
+    if not match:
+        return {
+            "requested_model": normalized,
+            "api_model": normalized,
+            "reasoning_effort": "",
+            "display_hint": normalized,
+            "routing_mode": "direct",
+        }
+
+    base_model = match.group("base").strip()
+    reasoning_effort = match.group("effort").lower().strip()
+    metapi_routing = is_local_metapi_base_url(base_url)
+    return {
+        "requested_model": normalized,
+        # Local Metapi exposes reasoning routes as gpt-5.5(high)/(medium)/(low).
+        # OpenClaw accepts dash suffixes, but downstream keys may only allow the
+        # parenthesized route aliases, so Fogsight sends the explicit Metapi alias.
+        # Generic OpenAI-compatible endpoints get the conservative base-model fallback.
+        "api_model": f"{base_model}({reasoning_effort})" if metapi_routing else base_model,
+        "reasoning_effort": reasoning_effort,
+        "display_hint": f"{base_model} + {reasoning_effort}",
+        "routing_mode": "metapi-suffix" if metapi_routing else "base-fallback",
+    }
+
+
 def mask_secret(value: str) -> str:
     value = (value or "").strip()
     if not value:
@@ -234,6 +269,19 @@ def redact_sensitive_text(text: str, secrets: Optional[list[str]] = None) -> str
     return redacted[:500]
 
 
+def summarize_model_test_reply(reply: Any, api_model: str) -> str:
+    normalized = redact_sensitive_text(reply if isinstance(reply, str) else "", []).strip()
+    if not normalized:
+        return f"模型可用：{api_model or 'OK'} 响应正常"
+
+    compact = re.sub(r"\s+", " ", normalized)
+    if compact in {"OK", "ok", "Ok"}:
+        return "模型可用：OK"
+    if len(compact) > 72 or compact.startswith(("{", "[")) or '"object"' in compact:
+        return f"模型可用：{api_model or 'OK'} 响应正常"
+    return f"模型可用：{compact}"
+
+
 async def run_model_test(credentials: RuntimeCredentials) -> Dict[str, Any]:
     model = (credentials.model or "").strip()
     if not model:
@@ -243,6 +291,7 @@ async def run_model_test(credentials: RuntimeCredentials) -> Dict[str, Any]:
     if not credentials.api_key:
         raise HTTPException(status_code=400, detail="请先配置 API_KEY。")
 
+    normalized_model = normalize_reasoning_model_name(model, credentials.base_url)
     prompt_messages = [
         {"role": "system", "content": "Reply with exactly: OK"},
         {"role": "user", "content": "Ping"},
@@ -253,7 +302,7 @@ async def run_model_test(credentials: RuntimeCredentials) -> Dict[str, Any]:
             client = build_openai_client(credentials)
             response = await asyncio.wait_for(
                 client.chat.completions.create(
-                    model=model,
+                    model=normalized_model["api_model"],
                     messages=prompt_messages,
                     max_tokens=8,
                     temperature=0,
@@ -291,17 +340,40 @@ async def run_model_test(credentials: RuntimeCredentials) -> Dict[str, Any]:
             else:
                 raise RuntimeError("Gemini SDK 未安装，无法使用当前 API_KEY 配置。")
 
-        safe_reply = redact_sensitive_text(reply, [credentials.api_key]).strip()
-        message = f"模型可用：{safe_reply}" if safe_reply else "模型可用。"
-        return {"ok": True, "model": model, "message": message}
+        message = summarize_model_test_reply(reply, normalized_model["api_model"])
+        if should_use_openai_compatible(credentials) and normalized_model["reasoning_effort"]:
+            if normalized_model["routing_mode"] == "metapi-suffix":
+                message = f"将以 Metapi 路由模型 {normalized_model['api_model']} 测试。{message}"
+            else:
+                message = f"将以 {normalized_model['display_hint']} 档测试。{message}"
+        return {
+            "ok": True,
+            "model": model,
+            "apiModel": normalized_model["api_model"],
+            "reasoningEffort": normalized_model["reasoning_effort"],
+            "routingMode": normalized_model["routing_mode"],
+            "message": message,
+        }
     except HTTPException:
         raise
     except asyncio.TimeoutError as exc:
         raise HTTPException(status_code=504, detail="模型测试超时，请检查服务地址或稍后重试。") from exc
     except OpenAIError as exc:
-        raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc), [credentials.api_key])) from exc
+        detail = redact_sensitive_text(str(exc), [credentials.api_key])
+        if should_use_openai_compatible(credentials) and normalized_model["reasoning_effort"]:
+            if normalized_model["routing_mode"] == "metapi-suffix":
+                detail = f"已按 Metapi 路由模型 {normalized_model['api_model']} 请求。{detail}"
+            else:
+                detail = f"已按 {normalized_model['display_hint']} 规范化请求。{detail}"
+        raise HTTPException(status_code=400, detail=detail) from exc
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=redact_sensitive_text(str(exc), [credentials.api_key])) from exc
+        detail = redact_sensitive_text(str(exc), [credentials.api_key])
+        if should_use_openai_compatible(credentials) and normalized_model["reasoning_effort"]:
+            if normalized_model["routing_mode"] == "metapi-suffix":
+                detail = f"已按 Metapi 路由模型 {normalized_model['api_model']} 请求。{detail}"
+            else:
+                detail = f"已按 {normalized_model['display_hint']} 规范化请求。{detail}"
+        raise HTTPException(status_code=400, detail=detail) from exc
 
 
 INITIAL_CREDENTIALS = load_runtime_credentials()
@@ -426,6 +498,7 @@ async def llm_event_stream(
     if not model:
         raise RuntimeError("MODEL 未配置。")
 
+    normalized_model = normalize_reasoning_model_name(model, credentials.base_url)
     system_prompt = generate_prompt(topic)
 
     if should_use_openai_compatible(credentials):
@@ -438,13 +511,13 @@ async def llm_event_stream(
 
         try:
             response = await client.chat.completions.create(
-                model=model,
+                model=normalized_model["api_model"],
                 messages=messages,
                 stream=True,
                 temperature=0.8,
             )
         except OpenAIError as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'error': redact_sensitive_text(str(e), [credentials.api_key])})}\n\n"
             return
 
         async for chunk in response:

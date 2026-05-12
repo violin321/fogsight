@@ -215,3 +215,8 @@ __MACOSX/
 **/Thumbs.db
 **/ehthumbs.db
 credentials.json
+
+# Fogsight local runtime/deployment state
+/data/
+docker-compose.override.yml
+docker-compose.prod.yml

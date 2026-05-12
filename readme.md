@@ -32,9 +32,12 @@
 
 - **官网式浏览器视频导出**：对齐 Fogsight 官方导出流程，通过 `getDisplayMedia` + `MediaRecorder` 打开 Recording 黑色窗口、授权屏幕共享并自动下载视频；优先导出 MP4，必要时回退 WebM。
 - **近期对话**：使用浏览器 `localStorage` 保存最近会话，支持首页/侧栏查看、恢复、重命名、删除，并在生成中锁定切换避免状态错乱。
+- **首页与工作区 UI 优化**：新增“工作方式 / 它能做什么 / 近期对话”的官网式介绍区，统一桌面与移动端的顶部按钮、品牌 logo、模型设置入口和工作区响应式布局。
+- **模型设置与连通性测试**：可在前端更新 `MODEL` / `BASE_URL` / `API_KEY`，测试结果使用短状态 + 详情面板展示，避免长错误撑爆布局。
+- **Metapi reasoning 路由兼容**：在本机 Metapi 场景下，可将 `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low` 自动映射到 `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)`。
 - **Regenerate**：基于原始 topic 重新生成新版本，便于回到初始意图重做。
 - **Improve this version**：基于当前 HTML 结果继续优化视觉层次、动效、移动端适配和解释清晰度。
-- **若干可用性修复**：包括 Open in new window 的滚动修复、fenced code 中 `html` 标记清理、更强的响应式 prompt 引导、录制窗口适配缩放和近期对话 UI 优化。
+- **若干可用性修复**：包括 Open in new window 的滚动修复、fenced code 中 `html` 标记清理、更强的响应式 prompt 引导、录制窗口适配缩放、近期对话 UI、模型设置弹窗和移动端 header 优化。
 
 ### 建议使用流程
 
@@ -61,6 +64,8 @@
 - 前端会通过 `GET /settings/model` 读取当前 `MODEL` 与 `BASE_URL`，并仅显示 **API Key 是否已配置**，**不会回显已有 key 内容**。
 - 保存时会调用 `POST /settings/model`；如果 `API_KEY` 输入框留空，则**保留当前旧 key**，不会被空值覆盖。
 - 可使用 **测试模型** 按钮调用 `POST /settings/model/test`，先验证当前输入的模型配置是否可连通，再决定是否保存。
+- 测试结果以短状态展示（如“模型可用 / 测试失败”），详细 `apiModel`、路由模式、错误信息会放在详情面板中，避免长错误信息撑开界面。
+- 对本机 Metapi 网关做了 reasoning 档位兼容：`gpt-5.5-high` / `medium` / `low` 会在请求时映射为 Metapi 的 `gpt-5.5(high)` / `gpt-5.5(medium)` / `gpt-5.5(low)` 路由。
 
 适合以下场景：
 - 在同一套部署里快速切换不同模型或网关。
@@ -70,7 +75,7 @@
 ### 安全与部署提示
 
 - **不要提交 `credentials.json`**，请仅在本地或受控环境保存 API 密钥。
-- 模型设置接口会把运行时配置写回本地 `credentials.json`；请确保该文件只存在于受控环境，并做好文件权限控制。
+- 模型设置接口会把运行时配置写入本地受控配置文件（优先使用 `data/credentials.local.json` 覆盖初始 `credentials.json`）；请确保这些文件只存在于受控环境，并做好文件权限控制。
 - 如果要部署到公网，务必自行增加认证、限流或前置网关保护；应用本身**没有账号系统**，直接暴露会有滥用风险。
 
 ### 许可证提醒
@@ -252,6 +257,7 @@
    - 首次启动后可在前端 **模型设置** 弹窗中调整 `MODEL`、`BASE_URL`、`API_KEY`。
    - `API_KEY` 不会在界面中回显；若留空保存，则保持当前旧 key。
    - 建议保存前先点击 **测试模型** 验证连接。
+   - 如果连接本机 Metapi，可直接填写 `gpt-5.5-high` / `gpt-5.5-medium` / `gpt-5.5-low`，应用会自动映射到 Metapi 的括号式 reasoning 路由。
 
 7. **停止服务:**
    ```bash

@@ -1,3 +1,5 @@
+let warningHideTimer = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     const config = {
         apiBaseUrl: '',
@@ -5,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const translations = {
-        heroTitle: { zh: "在此赋予概念以生命，转瞬之间", en: "Bring Concepts to Life Here" },
+        heroTitle: { zh: "把概念变成可探索的动态 HTML 动画", en: "Turn Concepts into Exploratory HTML Animations" },
         startCreatingTitle: { zh: "开始创作", en: "Start Creating" },
         githubrepo: { zh: "Github 开源仓库", en: "Fogsight Github Repo" },
         officialWebsite: { zh: "通向 AGI 之路社区", en: "WaytoAGI Open Source Community" },
@@ -87,9 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cancel: { zh: "取消", en: "Cancel" },
         saveSettings: { zh: "保存设置", en: "Save Settings" },
         testModel: { zh: "测试模型", en: "Test model" },
-        modelSettings: { zh: "模型设置", en: "Model Settings" },
+        modelSettings: { zh: "模型设置", en: "Settings" },
         modelSettingsTitle: { zh: "模型设置 / Model Settings", en: "Model Settings" },
-        modelSettingsDescription: { zh: "查看并更新当前模型配置。API Key 不会回显；留空则保持不变。", en: "Review and update the active model configuration. The API key is never shown; leave it blank to keep the current key." },
+        modelSettingsDescription: { zh: "查看并更新当前模型配置。API Key 不会回显；留空则保持不变。你可以先测试连接，再决定是否保存。", en: "Review and update the active model configuration. The API key is never shown; leave it blank to keep the current key. You can test the connection before saving." },
         modelSettingsLoading: { zh: "正在加载当前配置...", en: "Loading current configuration..." },
         modelSettingsCurrent: { zh: "当前：MODEL={model} · BASE_URL={baseUrl}", en: "Current: MODEL={model} · BASE_URL={baseUrl}" },
         modelSettingsApiKeyConfigured: { zh: "API Key 已配置", en: "API key configured" },
@@ -102,6 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         modelTestSuccess: { zh: "测试成功", en: "Test passed" },
         modelTestFailed: { zh: "测试失败", en: "Test failed" },
         modelTestAvailable: { zh: "模型可用", en: "Model is available" },
+        modelTestDetails: { zh: "查看详情", en: "View details" },
+        modelTestDetailsTitleSuccess: { zh: "成功详情", en: "Success details" },
+        modelTestDetailsTitleFailed: { zh: "错误详情", en: "Error details" },
+        modelTestDetailsTitleIdle: { zh: "测试详情", en: "Test details" },
+        modelTestNoDetails: { zh: "暂无详情", en: "No details yet" },
         modelTestRequestFailed: { zh: "模型测试失败，请检查配置后重试。", en: "Model test failed. Please check the configuration and try again." },
         modelRequiredWarning: { zh: "MODEL 不能为空。", en: "MODEL cannot be empty." },
         baseUrlRequiredWarning: { zh: "BASE_URL 不能为空。", en: "BASE_URL cannot be empty." },
@@ -123,9 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
         baseUrl: '',
         apiKeyConfigured: false,
         loaded: false,
+        saving: false,
         testing: false,
         testStatus: 'idle',
         testMessage: '',
+        testDetails: '',
+        testDetailsOpen: false,
     };
     let isVideoExporting = false;
     let activeRecordingBlobUrl = null;
@@ -163,6 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsApiKeyStatus = document.getElementById('settings-api-key-status');
     const settingsCurrentConfig = document.getElementById('settings-current-config');
     const settingsTestStatus = document.getElementById('settings-test-status');
+    const settingsTestDetailsButton = document.getElementById('settings-test-details-button');
+    const settingsTestDetails = document.getElementById('settings-test-details');
+    const settingsTestDetailsTitle = document.getElementById('settings-test-details-title');
+    const settingsTestDetailsBody = document.getElementById('settings-test-details-body');
 
     const templates = {
         user: document.getElementById('user-message-template'),
@@ -262,6 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if ('disabled' in element) element.disabled = disabled;
             element.setAttribute('aria-disabled', disabled ? 'true' : 'false');
             element.classList.toggle('is-disabled', disabled);
+            if (disabled) {
+                element.dataset.lockedReason = 'generating';
+            } else {
+                delete element.dataset.lockedReason;
+            }
         };
 
         disableElement(newChatButton, isGenerating);
@@ -275,6 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.recent-conversation-item, .initial-recent-conversation-card').forEach((item) => {
             item.classList.toggle('is-disabled', isGenerating);
             item.setAttribute('aria-disabled', isGenerating ? 'true' : 'false');
+            if (isGenerating) {
+                item.dataset.lockedReason = 'generating';
+            } else {
+                delete item.dataset.lockedReason;
+            }
         });
 
         document.querySelectorAll('.recent-conversation-main, .recent-action-button').forEach((button) => {
@@ -887,11 +911,99 @@ body {
         return `${config.apiBaseUrl}${pathname}`;
     }
 
+    function isLocalMetapiBaseUrl(baseUrl) {
+        try {
+            const parsed = new URL(String(baseUrl || '').trim());
+            const host = parsed.hostname.toLowerCase();
+            return ['127.0.0.1', 'localhost', 'host.docker.internal'].includes(host) && parsed.port === '4000';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function normalizeReasoningModelName(model, baseUrl = '') {
+        const normalized = String(model || '').trim();
+        const match = normalized.match(/^(.*?)-(low|medium|high)$/i);
+        if (!match) {
+            return {
+                requestedModel: normalized,
+                apiModel: normalized,
+                reasoningEffort: '',
+                displayHint: normalized,
+                routingMode: 'direct',
+            };
+        }
+
+        const baseModel = (match[1] || '').trim();
+        const reasoningEffort = (match[2] || '').toLowerCase().trim();
+        const metapiRouting = isLocalMetapiBaseUrl(baseUrl);
+        const metapiAlias = `${baseModel}(${reasoningEffort})`;
+        return {
+            requestedModel: normalized,
+            apiModel: metapiRouting ? metapiAlias : baseModel,
+            reasoningEffort,
+            displayHint: metapiRouting ? metapiAlias : `${baseModel} + ${reasoningEffort}`,
+            routingMode: metapiRouting ? 'metapi-suffix' : 'base-fallback',
+        };
+    }
+
     function formatModelSettingsCurrent(model, baseUrl) {
         const template = translations.modelSettingsCurrent[currentLang];
         return template
             .replace('{model}', model || '--')
             .replace('{baseUrl}', baseUrl || '--');
+    }
+
+    function summarizeModelTestMessage(message, options = {}) {
+        const fallback = options.fallback || '';
+        const maxLength = options.maxLength || 64;
+        const normalized = String(message || '').replace(/\s+/g, ' ').trim();
+        if (!normalized) return fallback;
+
+        if (/^[\[{]/.test(normalized) || /"object"\s*:|"choices"\s*:|"output"\s*:/i.test(normalized)) {
+            return fallback;
+        }
+
+        const truncated = normalized.length > maxLength
+            ? `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
+            : normalized;
+        return truncated || fallback;
+    }
+
+    function buildModelTestDetails(result = {}) {
+        const lines = [];
+        if (result.requestedModel) lines.push(`requestedModel: ${result.requestedModel}`);
+        if (result.apiModel) lines.push(`apiModel: ${result.apiModel}`);
+        if (result.routingMode) lines.push(`routingMode: ${result.routingMode}`);
+        if (result.reasoningEffort) lines.push(`reasoningEffort: ${result.reasoningEffort}`);
+        if (result.message) {
+            lines.push('');
+            lines.push(`message: ${result.message}`);
+        }
+        if (result.errorDetail) {
+            lines.push('');
+            lines.push(`error: ${result.errorDetail}`);
+        }
+        return lines.join('\n').trim();
+    }
+
+    function toggleModelTestDetails(forceOpen) {
+        if (!settingsTestDetails || !settingsTestDetailsButton || !settingsTestDetailsBody || !settingsTestDetailsTitle) return;
+        const hasDetails = Boolean(String(modelSettingsState.testDetails || '').trim());
+        const shouldOpen = Boolean(forceOpen) && hasDetails;
+        modelSettingsState.testDetailsOpen = shouldOpen;
+        settingsTestDetailsButton.hidden = !hasDetails;
+        settingsTestDetailsButton.textContent = translations.modelTestDetails[currentLang];
+        settingsTestDetailsButton.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        settingsTestDetails.hidden = !shouldOpen;
+        settingsTestDetailsTitle.textContent = modelSettingsState.testStatus === 'failed'
+            ? translations.modelTestDetailsTitleFailed[currentLang]
+            : modelSettingsState.testStatus === 'success'
+                ? translations.modelTestDetailsTitleSuccess[currentLang]
+                : translations.modelTestDetailsTitleIdle[currentLang];
+        settingsTestDetailsBody.textContent = hasDetails
+            ? modelSettingsState.testDetails
+            : translations.modelTestNoDetails[currentLang];
     }
 
     function renderModelTestState() {
@@ -900,15 +1012,20 @@ body {
         const statusMap = {
             idle: { text: translations.modelTestIdle[currentLang], state: 'idle' },
             testing: { text: translations.modelTestRunning[currentLang], state: 'testing' },
-            success: { text: modelSettingsState.testMessage || translations.modelTestSuccess[currentLang], state: 'success' },
-            failed: { text: modelSettingsState.testMessage || translations.modelTestFailed[currentLang], state: 'failed' },
+            success: { text: translations.modelTestAvailable[currentLang], state: 'success' },
+            failed: { text: translations.modelTestFailed[currentLang], state: 'failed' },
         };
 
         const currentStatus = statusMap[modelSettingsState.testStatus] || statusMap.idle;
         settingsTestStatus.textContent = currentStatus.text;
         settingsTestStatus.dataset.state = currentStatus.state;
-        settingsTestButton.disabled = modelSettingsState.testing;
+        settingsTestStatus.title = currentStatus.text;
+        settingsTestButton.disabled = modelSettingsState.testing || modelSettingsState.saving;
         settingsTestButton.dataset.loading = modelSettingsState.testing ? 'true' : 'false';
+        settingsTestButton.textContent = modelSettingsState.testing
+            ? translations.modelTestRunning[currentLang]
+            : translations.testModel[currentLang];
+        toggleModelTestDetails(modelSettingsState.testDetailsOpen);
     }
 
     function renderModelSettingsState() {
@@ -934,8 +1051,14 @@ body {
             if (!element) return;
             element.disabled = disabled;
         });
+        if (settingsSaveButton) {
+            settingsSaveButton.dataset.loading = disabled && modelSettingsState.saving ? 'true' : 'false';
+            settingsSaveButton.textContent = modelSettingsState.saving
+                ? `${translations.saveSettings[currentLang]}...`
+                : translations.saveSettings[currentLang];
+        }
         if (settingsTestButton) {
-            settingsTestButton.disabled = disabled || modelSettingsState.testing;
+            settingsTestButton.disabled = disabled || modelSettingsState.testing || modelSettingsState.saving;
         }
     }
 
@@ -948,6 +1071,12 @@ body {
             baseUrl: data.baseUrl || '',
             apiKeyConfigured: Boolean(data.apiKeyConfigured),
             loaded: true,
+            saving: false,
+            testing: false,
+            testStatus: 'idle',
+            testMessage: '',
+            testDetails: '',
+            testDetailsOpen: false,
         };
         return modelSettingsState;
     }
@@ -960,9 +1089,12 @@ body {
         settingsApiKeyStatus.textContent = 'API Key: --';
         settingsApiKeyStatus.dataset.configured = 'unknown';
         settingsApiKeyInput.value = '';
+        modelSettingsState.saving = false;
         modelSettingsState.testing = false;
         modelSettingsState.testStatus = 'idle';
         modelSettingsState.testMessage = '';
+        modelSettingsState.testDetails = '';
+        modelSettingsState.testDetailsOpen = false;
         renderModelTestState();
         setSettingsFormDisabled(true);
 
@@ -987,6 +1119,7 @@ body {
         settingsModal.setAttribute('aria-hidden', 'true');
         settingsApiKeyInput.value = '';
         modelSettingsState.testing = false;
+        modelSettingsState.testDetailsOpen = false;
         renderModelTestState();
     }
 
@@ -994,6 +1127,7 @@ body {
         const model = settingsModelInput.value.trim();
         const baseUrl = settingsBaseUrlInput.value.trim();
         const apiKey = settingsApiKeyInput.value.trim();
+        const normalizedModel = normalizeReasoningModelName(model, baseUrl);
 
         if (!model) {
             showWarning(translations.modelRequiredWarning[currentLang]);
@@ -1009,6 +1143,22 @@ body {
         modelSettingsState.testing = true;
         modelSettingsState.testStatus = 'testing';
         modelSettingsState.testMessage = '';
+        modelSettingsState.testDetails = normalizedModel.reasoningEffort
+            ? buildModelTestDetails({
+                requestedModel: normalizedModel.requestedModel,
+                apiModel: normalizedModel.apiModel,
+                routingMode: normalizedModel.routingMode,
+                reasoningEffort: normalizedModel.reasoningEffort,
+                message: normalizedModel.routingMode === 'metapi-suffix'
+                    ? `将以 Metapi 路由模型 ${normalizedModel.apiModel} 测试。`
+                    : `将以 ${normalizedModel.displayHint} 档测试。`,
+            })
+            : buildModelTestDetails({
+                requestedModel: normalizedModel.requestedModel,
+                apiModel: normalizedModel.apiModel,
+                routingMode: normalizedModel.routingMode,
+            });
+        modelSettingsState.testDetailsOpen = false;
         renderModelTestState();
 
         try {
@@ -1024,12 +1174,32 @@ body {
 
             if (!response.ok) throw new Error(await parseErrorDetail(response));
             const data = await response.json();
+            const normalizedModelMeta = normalizeReasoningModelName(model, baseUrl);
+            const normalizedModelName = data?.apiModel || normalizedModelMeta.apiModel || model;
             modelSettingsState.testStatus = 'success';
-            modelSettingsState.testMessage = data?.message || translations.modelTestAvailable[currentLang];
+            modelSettingsState.testMessage = summarizeModelTestMessage(data?.message, {
+                fallback: `模型可用：${normalizedModelName} 响应正常`,
+            });
+            modelSettingsState.testDetails = buildModelTestDetails({
+                requestedModel: normalizedModelMeta.requestedModel,
+                apiModel: data?.apiModel || normalizedModelMeta.apiModel,
+                routingMode: data?.routingMode || normalizedModelMeta.routingMode,
+                reasoningEffort: data?.reasoningEffort || normalizedModelMeta.reasoningEffort,
+                message: data?.message || `模型可用：${normalizedModelName} 响应正常`,
+            });
+            modelSettingsState.testDetailsOpen = false;
         } catch (error) {
             console.error('Failed to test model settings:', error);
             modelSettingsState.testStatus = 'failed';
-            modelSettingsState.testMessage = `${translations.modelTestRequestFailed[currentLang]} ${error?.message || ''}`.trim();
+            modelSettingsState.testMessage = translations.modelTestRequestFailed[currentLang];
+            modelSettingsState.testDetails = buildModelTestDetails({
+                requestedModel: normalizedModel.requestedModel,
+                apiModel: normalizedModel.apiModel,
+                routingMode: normalizedModel.routingMode,
+                reasoningEffort: normalizedModel.reasoningEffort,
+                errorDetail: `${translations.modelTestRequestFailed[currentLang]} ${error?.message || ''}`.trim(),
+            });
+            modelSettingsState.testDetailsOpen = true;
         } finally {
             modelSettingsState.testing = false;
             renderModelTestState();
@@ -1053,6 +1223,7 @@ body {
             return;
         }
 
+        modelSettingsState.saving = true;
         setSettingsFormDisabled(true);
         try {
             const response = await fetch(getApiBaseUrl('/settings/model'), {
@@ -1073,6 +1244,7 @@ body {
                 baseUrl: data.baseUrl || baseUrl,
                 apiKeyConfigured: Boolean(data.apiKeyConfigured),
                 loaded: true,
+                saving: false,
             };
             renderModelSettingsState();
             settingsApiKeyInput.value = '';
@@ -1082,7 +1254,9 @@ body {
             console.error('Failed to save model settings:', error);
             showWarning(`${translations.modelSettingsSaveFailed[currentLang]} ${error?.message || ''}`.trim());
         } finally {
+            modelSettingsState.saving = false;
             setSettingsFormDisabled(false);
+            renderModelTestState();
         }
     }
 
@@ -1768,6 +1942,8 @@ setTimeout(() => {
             else if (el.hasAttribute('title')) el.title = translation;
             else el.textContent = translation;
         });
+        openSettingsButton?.setAttribute('aria-label', translations.modelSettings[lang]);
+        chatSettingsButton?.setAttribute('aria-label', translations.modelSettings[lang]);
         renderRecentConversations();
         updateCurrentChatTitle(getCurrentConversation()?.title || (conversationHistory.length ? translations.currentConversationUntitled[lang] : translations.newConversationDefault[lang]));
         renderModelSettingsState();
@@ -1789,6 +1965,9 @@ setTimeout(() => {
 
         initialForm.addEventListener('submit', handleFormSubmit);
         chatForm.addEventListener('submit', handleFormSubmit);
+        openSettingsButton?.setAttribute('aria-label', translations.modelSettings[currentLang]);
+        chatSettingsButton?.setAttribute('aria-label', translations.modelSettings[currentLang]);
+
         newChatButton.addEventListener('click', () => startNewConversation({ switchView: true }));
         sidebarNewChatButton?.addEventListener('click', () => startNewConversation({ switchView: true }));
         sidebarToggleButton?.addEventListener('click', openSidebar);
@@ -1813,6 +1992,10 @@ setTimeout(() => {
         });
         settingsForm?.addEventListener('submit', handleSettingsSave);
         settingsTestButton?.addEventListener('click', handleSettingsTest);
+        settingsTestDetailsButton?.addEventListener('click', () => {
+            modelSettingsState.testDetailsOpen = !modelSettingsState.testDetailsOpen;
+            toggleModelTestDetails(modelSettingsState.testDetailsOpen);
+        });
         featureModal.addEventListener('click', (e) => {
             if (e.target === featureModal) hideModal();
         });
@@ -1857,16 +2040,25 @@ function showWarning(message) {
     const box = document.getElementById('warning-box');
     const overlay = document.getElementById('overlay');
     const text = document.getElementById('warning-message');
+    if (!box || !overlay || !text) return;
+
     text.textContent = message;
     box.style.display = 'flex';
     overlay.style.display = 'block';
 
-    setTimeout(() => {
+    if (warningHideTimer) clearTimeout(warningHideTimer);
+    warningHideTimer = setTimeout(() => {
         hideWarning();
-    }, 10000);
+    }, 4200);
 }
 
 function hideWarning() {
-    document.getElementById('warning-box').style.display = 'none';
-    document.getElementById('overlay').style.display = 'none';
+    const box = document.getElementById('warning-box');
+    const overlay = document.getElementById('overlay');
+    if (warningHideTimer) {
+        clearTimeout(warningHideTimer);
+        warningHideTimer = null;
+    }
+    if (box) box.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
 }

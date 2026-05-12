@@ -8,7 +8,7 @@
     <link rel="icon" href="/static/favicon.png?v={{ time }}" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
@@ -17,10 +17,13 @@
 <body class="show-initial-view">
 
     <div class="top-right-controls">
-        <button id="open-settings-button" class="settings-trigger" type="button" data-translate-key="modelSettings">模型设置</button>
+        <button id="open-settings-button" class="settings-trigger" type="button" aria-label="模型设置">
+            <svg class="settings-trigger-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0a2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1a1.65 1.65 0 0 0-.33-1.82L4.21 7.2a2 2 0 0 1 0-2.83a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.25V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0a2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span class="settings-trigger-label" data-translate-key="modelSettings">模型设置</span>
+        </button>
         <div id="language-switcher" class="language-switcher">
-            <button data-lang="zh">中</button>
-            <button data-lang="en">EN</button>
+            <button data-lang="zh" aria-label="切换到中文">中</button>
+            <button data-lang="en" aria-label="Switch to English">EN</button>
         </div>
     </div>
 
@@ -28,16 +31,41 @@
         <img src="/static/logo.png" alt="Studio Logo" class="logo" id="logo-initial">
 
         <div class="initial-content">
-            <div class="hero-group">
-                <h1 data-translate-key="heroTitle">在此赋予概念以生命，转瞬之间</h1>
-                <form id="initial-form" class="initial-form">
-                    <div id="animated-placeholder" class="animated-placeholder"></div>
-                    <input type="text" id="initial-input" required>
-                    <button type="submit" data-translate-key="startCreatingTitle" title="开始创作">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M3 20V4l19 8Z"/></svg>
-                    </button>
-                </form>
-            </div>
+            <section class="hero-panel" aria-labelledby="hero-title">
+                <div class="hero-group">
+                    <span class="hero-kicker">Concept Lab · Dynamic HTML Studio</span>
+                    <h1 id="hero-title" data-translate-key="heroTitle">在此赋予概念以生命，转瞬之间</h1>
+                    <p class="hero-description">把抽象概念送进一间清爽的雾面实验室：拆解、组织、动画化，然后继续对话迭代成可展示的 HTML 作品。</p>
+                    <form id="initial-form" class="initial-form">
+                        <div id="animated-placeholder" class="animated-placeholder"></div>
+                        <input type="text" id="initial-input" required>
+                        <button type="submit" data-translate-key="startCreatingTitle" title="开始创作">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M3 20V4l19 8Z"/></svg>
+                        </button>
+                    </form>
+                    <div class="hero-support-row">
+                        <div class="hero-support-copy">
+                            <span class="hero-support-label">Best for</span>
+                            <span class="hero-support-text">science · math · systems · teaching · presentations</span>
+                        </div>
+                        <div class="hero-metrics" aria-label="product metrics">
+                            <div class="hero-metric-card">
+                                <strong>HTML</strong>
+                                <span>interactive output</span>
+                            </div>
+                            <div class="hero-metric-card">
+                                <strong>Multi-turn</strong>
+                                <span>refine by conversation</span>
+                            </div>
+                            <div class="hero-metric-card">
+                                <strong>Export</strong>
+                                <span>save or record</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="initial-product-intro" aria-labelledby="initial-how-it-works-title">
                 <div class="intro-grid">
                     <article class="intro-card intro-card-steps">
@@ -90,20 +118,34 @@
                                 <span class="capability-tag" data-translate-key="capabilityPresentation">演示素材</span>
                             </div>
                         </article>
-
-                        <section id="initial-recent-conversations" class="initial-recent-conversations" aria-labelledby="initial-recent-conversations-title">
-                            <div class="initial-recent-header">
+                        <article class="intro-card intro-card-lab-note">
+                            <div class="intro-card-header compact">
                                 <div>
-                                    <span class="section-eyebrow">Recent</span>
-                                    <h2 id="initial-recent-conversations-title" data-translate-key="recentConversations">近期对话</h2>
+                                    <span class="section-eyebrow">Why Fogsight</span>
+                                    <h2>像同一套产品，不像拼起来的功能</h2>
                                 </div>
-                                <span class="initial-recent-note" data-translate-key="recentHint">快速继续最近的灵感</span>
                             </div>
-                            <div id="initial-recent-conversations-list" class="initial-recent-conversations-list"></div>
-                            <p id="initial-recent-conversations-empty" class="initial-recent-conversations-empty" data-translate-key="noRecentConversations">暂无近期对话</p>
-                        </section>
+                            <p class="lab-note-copy">新增的工作区、说明区、近期对话与模型设置，都围绕同一条主线：让复杂概念的探索过程保持轻、稳、清晰。</p>
+                            <ul class="lab-note-list">
+                                <li>清楚的输入起点</li>
+                                <li>有层次的过程说明</li>
+                                <li>顺手继续最近工作</li>
+                            </ul>
+                        </article>
                     </div>
                 </div>
+
+                <section id="initial-recent-conversations" class="intro-card initial-recent-conversations" aria-labelledby="initial-recent-conversations-title">
+                    <div class="intro-card-header compact initial-recent-header">
+                        <div>
+                            <span class="section-eyebrow">Recent</span>
+                            <h2 id="initial-recent-conversations-title" data-translate-key="recentConversations">近期对话</h2>
+                        </div>
+                        <p class="intro-card-note initial-recent-note" data-translate-key="recentHint">快速继续最近的灵感</p>
+                    </div>
+                    <div id="initial-recent-conversations-list" class="initial-recent-conversations-list"></div>
+                    <p id="initial-recent-conversations-empty" class="initial-recent-conversations-empty" data-translate-key="noRecentConversations">暂无近期对话</p>
+                </section>
             </section>
              <footer class="initial-footer">
                 <a href="https://github.com/fogsightai/fogsight" target="_blank" data-translate-key="githubrepo">Github 开源仓库</a>
@@ -134,13 +176,13 @@
                     <button id="sidebar-toggle-button" class="icon-button sidebar-toggle-button" type="button" aria-label="打开侧栏">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
                     </button>
-                    <button id="new-chat-button" class="new-chat-button" data-translate-key="newChatTitle" title="新对话">
+                    <img src="/static/logo.png" alt="Studio Logo" class="logo" id="logo-chat">
+                    <button id="new-chat-button" class="new-chat-button" title="新对话" aria-label="新对话">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
                         <span data-translate-key="newChat">新对话</span>
                     </button>
                 </div>
                 <div class="chat-header-right">
-                    <button id="chat-settings-button" class="settings-trigger settings-trigger-chat" type="button" data-translate-key="modelSettings">模型设置</button>
                     <div id="current-chat-title" class="current-chat-title" aria-live="polite">
                         <span class="current-chat-title-label" data-translate-key="currentConversationLabel">当前对话</span>
                         <div class="current-chat-title-main">
@@ -148,7 +190,10 @@
                             <span class="current-chat-title-text">新对话</span>
                         </div>
                     </div>
-                    <img src="/static/logo.png" alt="Studio Logo" class="logo" id="logo-chat">
+                    <button id="chat-settings-button" class="settings-trigger settings-trigger-chat" type="button" aria-label="模型设置">
+                        <svg class="settings-trigger-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83a2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0a2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1a1.65 1.65 0 0 0-.33-1.82L4.21 7.2a2 2 0 0 1 0-2.83a2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.25V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0a2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                        <span class="settings-trigger-label" data-translate-key="modelSettings">模型设置</span>
+                    </button>
                 </div>
             </header>
             <main id="chat-log" class="chat-log"></main>
@@ -246,35 +291,59 @@
         <div class="modal-content settings-modal-content">
             <button id="settings-close-button" class="modal-close-button" title="Close">×</button>
             <div class="settings-modal-header">
-                <span class="section-eyebrow" data-translate-key="modelSettings">模型设置</span>
-                <h2 data-translate-key="modelSettingsTitle">模型设置 / Model Settings</h2>
+                <div class="settings-modal-title-row">
+                    <div>
+                        <span class="section-eyebrow" data-translate-key="modelSettings">模型设置</span>
+                        <h2 data-translate-key="modelSettingsTitle">模型设置 / Model Settings</h2>
+                    </div>
+                    <div class="settings-header-badge">Credentials stay local</div>
+                </div>
                 <p data-translate-key="modelSettingsDescription">查看并更新当前模型配置。API Key 不会回显；留空则保持不变。</p>
             </div>
             <form id="settings-form" class="settings-form">
-                <label class="settings-field">
-                    <span class="settings-label">MODEL</span>
-                    <input id="settings-model-input" name="model" type="text" autocomplete="off" required>
-                </label>
-                <label class="settings-field">
-                    <span class="settings-label">BASE_URL</span>
-                    <input id="settings-base-url-input" name="baseUrl" type="url" autocomplete="off" required>
-                </label>
-                <label class="settings-field">
-                    <span class="settings-label">API_KEY</span>
-                    <input id="settings-api-key-input" name="apiKey" type="password" autocomplete="new-password" data-translate-key="apiKeyPlaceholder" placeholder="留空则不修改 / Leave blank to keep current key">
-                </label>
-                <div class="settings-status-row">
-                    <span class="settings-status-pill" id="settings-api-key-status">API Key: --</span>
-                    <span class="settings-status-text" id="settings-current-config" data-translate-key="modelSettingsLoading">正在加载当前配置...</span>
+                <div class="settings-layout">
+                    <div class="settings-fields-panel">
+                        <label class="settings-field">
+                            <span class="settings-label">MODEL</span>
+                            <input id="settings-model-input" name="model" type="text" autocomplete="off" required>
+                        </label>
+                        <label class="settings-field">
+                            <span class="settings-label">BASE_URL</span>
+                            <input id="settings-base-url-input" name="baseUrl" type="url" autocomplete="off" required>
+                        </label>
+                        <label class="settings-field settings-field-sensitive">
+                            <span class="settings-label">API_KEY</span>
+                            <input id="settings-api-key-input" name="apiKey" type="password" autocomplete="new-password" data-translate-key="apiKeyPlaceholder" placeholder="留空则不修改 / Leave blank to keep current key">
+                            <span class="settings-field-caption">留空表示沿用已有密钥；界面不会回显当前值。</span>
+                        </label>
+                    </div>
+                    <aside class="settings-side-panel">
+                        <div class="settings-side-card settings-side-card-status">
+                            <span class="settings-side-label">Current status</span>
+                            <span class="settings-status-pill" id="settings-api-key-status">API Key: --</span>
+                            <span class="settings-status-text" id="settings-current-config" data-translate-key="modelSettingsLoading">正在加载当前配置...</span>
+                        </div>
+                        <div class="settings-side-card settings-side-card-test">
+                            <div class="settings-test-heading-row">
+                                <span class="settings-side-label">Connection test</span>
+                                <span id="settings-test-status" class="settings-test-status" data-state="idle" data-translate-key="modelTestIdle">未测试</span>
+                            </div>
+                            <div class="settings-test-actions">
+                                <button type="button" id="settings-test-button" class="modal-button modal-button-secondary settings-test-button" data-translate-key="testModel">测试模型</button>
+                                <button type="button" id="settings-test-details-button" class="modal-button modal-button-secondary settings-test-details-button" hidden>查看详情</button>
+                            </div>
+                            <div id="settings-test-details" class="settings-test-details" hidden>
+                                <div id="settings-test-details-title" class="settings-test-details-title">测试详情</div>
+                                <pre id="settings-test-details-body" class="settings-test-details-body"></pre>
+                            </div>
+                            <p class="settings-side-note">测试会使用当前表单内容，不会暴露已存储的 API_KEY。</p>
+                        </div>
+                    </aside>
                 </div>
                 <div class="settings-actions">
-                    <div class="settings-actions-primary">
-                        <button type="button" id="settings-test-button" class="modal-button modal-button-secondary" data-translate-key="testModel">测试模型</button>
-                        <span id="settings-test-status" class="settings-test-status" data-state="idle" data-translate-key="modelTestIdle">未测试</span>
-                    </div>
                     <div class="settings-actions-secondary">
                         <button type="button" id="settings-cancel-button" class="modal-button modal-button-secondary" data-translate-key="cancel">取消</button>
-                        <button type="submit" id="settings-save-button" class="modal-button" data-translate-key="saveSettings">保存设置</button>
+                        <button type="submit" id="settings-save-button" class="modal-button">保存设置</button>
                     </div>
                 </div>
             </form>
