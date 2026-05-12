@@ -1221,7 +1221,11 @@ button.is-disabled,
 .settings-actions-secondary {
     width: 100%;
     justify-content: flex-end;
-    padding-right: 0.25rem;
+    padding: 1rem;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.66);
+    border: 1px solid rgba(104, 126, 154, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
 }
 .settings-actions-secondary .modal-button {
     width: auto;
