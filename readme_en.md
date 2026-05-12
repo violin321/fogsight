@@ -21,28 +21,6 @@ We designed an intuitive *Language User Interface* (LUI) so you can **easily edi
 
 *Fogsight* means **“a concrete shape within fuzzy intelligence.”**
 
-## Screenshots
-
-### Desktop
-
-![Homepage](screenshots/homepage-desktop.png)
-
-![Model Settings](screenshots/model-settings-desktop.png)
-
-![Workspace](screenshots/workspace-desktop.png)
-
-### iPad
-
-![iPad Homepage](screenshots/homepage-ipad.png)
-
-![iPad Model Settings](screenshots/model-settings-ipad.png)
-
-### iPhone
-
-![iPhone Homepage](screenshots/homepage-iphone.png)
-
-![iPhone Model Settings](screenshots/model-settings-iphone.png)
-
 ## Fork enhancements
 
 > This repository is the personal-use enhanced fork [`violin321/fogsight`](https://github.com/violin321/fogsight). It keeps the upstream copyright and license notices intact and does not change ownership of the original project.
@@ -57,6 +35,32 @@ This fork adds a few workflow-focused improvements for day-to-day use:
 - **Regenerate**: regenerate from the original topic for a fresh version.
 - **Improve this version**: continue from the current HTML result to improve visual hierarchy, motion, mobile adaptation, and clarity of explanation.
 - **Usability fixes**: scrolling fix for Open in new window, cleanup of fenced code `html` markers, stronger responsive prompt guidance, recording-window fit-to-view, recent-conversation UI polish, Model Settings modal polish, iPad/iPhone responsive fixes, and mobile header fixes.
+
+## Screenshots
+
+### Desktop
+
+<p align="center">
+  <img src="screenshots/preview-desktop.png"
+       alt="Fogsight desktop preview collage"
+       width="920">
+</p>
+
+### iPad
+
+<p align="center">
+  <img src="screenshots/preview-tablet.png"
+       alt="Fogsight iPad preview collage"
+       width="880">
+</p>
+
+### iPhone
+
+<p align="center">
+  <img src="screenshots/preview-mobile.png"
+       alt="Fogsight iPhone preview collage"
+       width="820">
+</p>
 
 ### Suggested workflow
 

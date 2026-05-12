@@ -24,28 +24,6 @@
 
 雾象，意为 **“在模糊智能中的具象”**。*雾象是 WaytoAGI 开源计划项目成员。 WaytoAGI， 让更多人因 AI 而强大*
 
-## 界面预览
-
-### 桌面端
-
-![首页](screenshots/homepage-desktop.png)
-
-![模型设置](screenshots/model-settings-desktop.png)
-
-![工作区](screenshots/workspace-desktop.png)
-
-### iPad
-
-![iPad 首页](screenshots/homepage-ipad.png)
-
-![iPad 模型设置](screenshots/model-settings-ipad.png)
-
-### iPhone
-
-![iPhone 首页](screenshots/homepage-iphone.png)
-
-![iPhone 模型设置](screenshots/model-settings-iphone.png)
-
 ## 自用增强说明 / Fork enhancements
 
 > 本仓库是 [`violin321/fogsight`](https://github.com/violin321/fogsight) 的自用增强版 fork，保留上游版权与许可证声明，不改变原项目的归属关系。
@@ -60,6 +38,32 @@
 - **Regenerate**：基于原始 topic 重新生成新版本，便于回到初始意图重做。
 - **Improve this version**：基于当前 HTML 结果继续优化视觉层次、动效、移动端适配和解释清晰度。
 - **若干可用性修复**：包括 Open in new window 的滚动修复、fenced code 中 `html` 标记清理、更强的响应式 prompt 引导、录制窗口适配缩放、近期对话 UI、模型设置弹窗、iPad/iPhone 响应式适配和移动端 header 优化。
+
+## 界面预览
+
+### 桌面端
+
+<p align="center">
+  <img src="screenshots/preview-desktop.png"
+       alt="Fogsight 桌面端合并预览图"
+       width="920">
+</p>
+
+### iPad
+
+<p align="center">
+  <img src="screenshots/preview-tablet.png"
+       alt="Fogsight iPad 合并预览图"
+       width="880">
+</p>
+
+### iPhone
+
+<p align="center">
+  <img src="screenshots/preview-mobile.png"
+       alt="Fogsight iPhone 合并预览图"
+       width="820">
+</p>
 
 ### 建议使用流程
 
